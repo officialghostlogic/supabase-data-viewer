@@ -33,11 +33,11 @@ import { useTheme } from "@/hooks/useTheme";
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, path: "" },
   { title: "Works", icon: Image, path: "/works" },
+  { title: "Import", icon: Upload, path: "/import" },
   { title: "Artists", icon: Users, path: "/artists" },
   { title: "Locations", icon: MapPin, path: "/locations" },
   { title: "Condition", icon: ClipboardCheck, path: "/condition" },
   { title: "Loans", icon: HandCoins, path: "/loans" },
-  { title: "Import", icon: Upload, path: "/import" },
   { title: "Reports", icon: FileBarChart, path: "/reports" },
 ];
 

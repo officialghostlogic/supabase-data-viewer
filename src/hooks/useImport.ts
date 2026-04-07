@@ -1,30 +1,36 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ParsedRow, parseArtistName, parseLocation } from "@/utils/parseExcelRow";
+import { ProcessedRow, parseLocation } from "@/utils/parseExcelRow";
 import type { EmbeddedImage } from "@/utils/extractEmbeddedImages";
 
 export interface MatchResult {
-  row: ParsedRow;
-  status: "new" | "update";
+  row: ProcessedRow;
+  status: "new" | "update" | "review" | "skip";
   existingWorkId?: string;
   artistStatus: "existing" | "new";
   existingArtistId?: string;
   locationStatus: "existing" | "new";
   existingLocationId?: string;
+  buildingStatus: "existing" | "new";
   existingBuildingId?: string;
   hasImage: boolean;
   included: boolean;
 }
 
 export interface ImportProgress {
+  phase: string;
   current: number;
   total: number;
-  currentLabel: string;
-  imported: number;
+  detail: string;
+  created: number;
   updated: number;
   skipped: number;
   errors: number;
   errorDetails: { row: number; message: string }[];
+  artistsCreated: number;
+  buildingsCreated: number;
+  locationsCreated: number;
+  imagesUploaded: number;
 }
 
 export function useImportMatching() {
@@ -32,21 +38,17 @@ export function useImportMatching() {
   const [results, setResults] = useState<MatchResult[]>([]);
 
   const runMatching = useCallback(
-    async (rows: ParsedRow[], rowImageMap: Record<number, EmbeddedImage>) => {
+    async (rows: ProcessedRow[], rowImageMap: Record<number, EmbeddedImage>) => {
       setMatching(true);
       try {
         const { data: existingWorks } = await supabase
-          .from("works")
-          .select("id, accession_number, barcode");
+          .from("works").select("id, accession_number, barcode");
         const { data: existingArtists } = await supabase
-          .from("artists")
-          .select("id, display_name");
+          .from("artists").select("id, display_name");
         const { data: existingLocations } = await supabase
-          .from("locations")
-          .select("id, full_location, building_id");
+          .from("locations").select("id, full_location, building_id");
         const { data: existingBuildings } = await supabase
-          .from("buildings")
-          .select("id, name");
+          .from("buildings").select("id, name");
 
         const worksByAcc = new Map<string, string>();
         const worksByBarcode = new Map<string, string>();
@@ -56,9 +58,7 @@ export function useImportMatching() {
         });
 
         const artistsByName = new Map<string, string>();
-        (existingArtists || []).forEach((a) => {
-          artistsByName.set(a.display_name.toLowerCase(), a.id);
-        });
+        (existingArtists || []).forEach((a) => artistsByName.set(a.display_name.toLowerCase(), a.id));
 
         const locationsByFull = new Map<string, { id: string; building_id: string | null }>();
         (existingLocations || []).forEach((l) => {
@@ -66,12 +66,10 @@ export function useImportMatching() {
         });
 
         const buildingsByName = new Map<string, string>();
-        (existingBuildings || []).forEach((b) => {
-          buildingsByName.set(b.name.toLowerCase(), b.id);
-        });
+        (existingBuildings || []).forEach((b) => buildingsByName.set(b.name.toLowerCase(), b.id));
 
         const matched: MatchResult[] = rows.map((row) => {
-          let status: "new" | "update" = "new";
+          let status: MatchResult["status"] = "new";
           let existingWorkId: string | undefined;
 
           if (row.accession_number) {
@@ -82,11 +80,13 @@ export function useImportMatching() {
             const id = worksByBarcode.get(row.barcode.toLowerCase());
             if (id) { status = "update"; existingWorkId = id; }
           }
+          if (!row.accession_number && !row.barcode) status = "skip";
+          else if (!row.accession_number && row.barcode && !existingWorkId) status = "review";
 
           let artistStatus: "existing" | "new" = "new";
           let existingArtistId: string | undefined;
-          if (row.artist_name) {
-            const id = artistsByName.get(row.artist_name.trim().toLowerCase());
+          if (row.artist_display) {
+            const id = artistsByName.get(row.artist_display.toLowerCase());
             if (id) { artistStatus = "existing"; existingArtistId = id; }
           } else {
             artistStatus = "existing";
@@ -94,37 +94,37 @@ export function useImportMatching() {
 
           let locationStatus: "existing" | "new" = "new";
           let existingLocationId: string | undefined;
+          let buildingStatus: "existing" | "new" = "new";
           let existingBuildingId: string | undefined;
+
           if (row.location_full) {
             const loc = locationsByFull.get(row.location_full.toLowerCase());
             if (loc) {
               locationStatus = "existing";
               existingLocationId = loc.id;
               existingBuildingId = loc.building_id || undefined;
+              buildingStatus = "existing";
             } else {
-              const parsed = parseLocation(row.location_full);
-              const bId = buildingsByName.get(parsed.building.toLowerCase());
-              if (bId) existingBuildingId = bId;
+              const bId = buildingsByName.get(row.location_building.toLowerCase());
+              if (bId) { buildingStatus = "existing"; existingBuildingId = bId; }
             }
           } else {
             locationStatus = "existing";
+            buildingStatus = "existing";
           }
 
           return {
-            row,
-            status,
-            existingWorkId,
-            artistStatus,
-            existingArtistId,
-            locationStatus,
-            existingLocationId,
-            existingBuildingId,
+            row, status, existingWorkId,
+            artistStatus, existingArtistId,
+            locationStatus, existingLocationId,
+            buildingStatus, existingBuildingId,
             hasImage: !!rowImageMap[row.rowIndex],
-            included: true,
+            included: status !== "skip",
           };
         });
 
         setResults(matched);
+        return matched;
       } finally {
         setMatching(false);
       }
@@ -137,7 +137,7 @@ export function useImportMatching() {
   }, []);
 
   const toggleAll = useCallback((val: boolean) => {
-    setResults((prev) => prev.map((r) => ({ ...r, included: val })));
+    setResults((prev) => prev.map((r) => (r.status === "skip" ? r : { ...r, included: val })));
   }, []);
 
   return { matching, results, runMatching, toggleRow, toggleAll, setResults };
@@ -146,23 +146,25 @@ export function useImportMatching() {
 export function useImportExecution() {
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [done, setDone] = useState(false);
+  const [postImportData, setPostImportData] = useState<{
+    created: number; updated: number; artistsCreated: number;
+    buildingsCreated: number; locationsCreated: number; imagesUploaded: number;
+    newBuildings: string[];
+  } | null>(null);
 
   const execute = useCallback(
     async (
       results: MatchResult[],
       rowImageMap: Record<number, EmbeddedImage>,
-      sourceFile: string
+      sourceFile: string,
+      sourceSystem: string,
+      setToNeedsReview: boolean
     ) => {
       const included = results.filter((r) => r.included);
       const prog: ImportProgress = {
-        current: 0,
-        total: included.length,
-        currentLabel: "",
-        imported: 0,
-        updated: 0,
-        skipped: 0,
-        errors: 0,
-        errorDetails: [],
+        phase: "", current: 0, total: included.length, detail: "",
+        created: 0, updated: 0, skipped: 0, errors: 0, errorDetails: [],
+        artistsCreated: 0, buildingsCreated: 0, locationsCreated: 0, imagesUploaded: 0,
       };
       setProgress({ ...prog });
       setDone(false);
@@ -170,168 +172,285 @@ export function useImportExecution() {
       const artistCache = new Map<string, string>();
       const buildingCache = new Map<string, string>();
       const locationCache = new Map<string, string>();
+      const newBuildingNames: string[] = [];
 
-      for (let i = 0; i < included.length; i++) {
-        const m = included[i];
-        prog.current = i + 1;
-        prog.currentLabel = m.row.title || m.row.accession_number || `Row ${m.row.rowIndex}`;
+      // Pre-populate caches from existing matches
+      for (const m of included) {
+        if (m.existingArtistId && m.row.artist_display)
+          artistCache.set(m.row.artist_display.toLowerCase(), m.existingArtistId);
+        if (m.existingBuildingId && m.row.location_building)
+          buildingCache.set(m.row.location_building.toLowerCase(), m.existingBuildingId);
+        if (m.existingLocationId && m.row.location_full)
+          locationCache.set(m.row.location_full.toLowerCase(), m.existingLocationId);
+      }
+
+      // 1. Create buildings
+      const uniqueBuildings = new Map<string, MatchResult>();
+      for (const m of included) {
+        if (m.row.location_building && m.buildingStatus === "new" && !buildingCache.has(m.row.location_building.toLowerCase()))
+          uniqueBuildings.set(m.row.location_building.toLowerCase(), m);
+      }
+      prog.phase = "Creating buildings";
+      prog.total = uniqueBuildings.size;
+      prog.current = 0;
+      setProgress({ ...prog });
+
+      for (const [key, m] of uniqueBuildings) {
+        prog.current++;
+        prog.detail = m.row.location_building;
+        setProgress({ ...prog });
+        try {
+          const { data, error } = await supabase.from("buildings")
+            .insert({ name: m.row.location_building, is_active: true })
+            .select("id").single();
+          if (error) throw error;
+          buildingCache.set(key, data.id);
+          prog.buildingsCreated++;
+          newBuildingNames.push(m.row.location_building);
+        } catch (e: any) {
+          // May already exist, try to fetch
+          const { data } = await supabase.from("buildings")
+            .select("id").eq("name", m.row.location_building).single();
+          if (data) buildingCache.set(key, data.id);
+        }
+      }
+
+      // 2. Create locations
+      const uniqueLocations = new Map<string, MatchResult>();
+      for (const m of included) {
+        if (m.row.location_full && m.locationStatus === "new" && !locationCache.has(m.row.location_full.toLowerCase()))
+          uniqueLocations.set(m.row.location_full.toLowerCase(), m);
+      }
+      prog.phase = "Creating rooms";
+      prog.total = uniqueLocations.size;
+      prog.current = 0;
+      setProgress({ ...prog });
+
+      for (const [key, m] of uniqueLocations) {
+        prog.current++;
+        prog.detail = m.row.location_full || "";
+        setProgress({ ...prog });
+        try {
+          const buildingId = buildingCache.get(m.row.location_building.toLowerCase()) || null;
+          const { data, error } = await supabase.from("locations")
+            .insert({
+              building_id: buildingId,
+              building: m.row.location_building || "Unknown",
+              floor: m.row.location_floor || null,
+              room_name: m.row.location_room || null,
+              full_location: m.row.location_full,
+            })
+            .select("id").single();
+          if (error) throw error;
+          locationCache.set(key, data.id);
+          prog.locationsCreated++;
+        } catch (e: any) {
+          const { data } = await supabase.from("locations")
+            .select("id").eq("full_location", m.row.location_full!).single();
+          if (data) locationCache.set(key, data.id);
+        }
+      }
+
+      // 3. Create artists
+      const uniqueArtists = new Map<string, MatchResult>();
+      for (const m of included) {
+        if (m.row.artist_display && m.artistStatus === "new" && !artistCache.has(m.row.artist_display.toLowerCase()))
+          uniqueArtists.set(m.row.artist_display.toLowerCase(), m);
+      }
+      prog.phase = "Creating artists";
+      prog.total = uniqueArtists.size;
+      prog.current = 0;
+      setProgress({ ...prog });
+
+      for (const [key, m] of uniqueArtists) {
+        prog.current++;
+        prog.detail = m.row.artist_display || "";
+        setProgress({ ...prog });
+        try {
+          const { data, error } = await supabase.from("artists")
+            .insert({
+              display_name: m.row.artist_display!,
+              family_name: m.row.artist_family || null,
+              given_name: m.row.artist_given || null,
+              name_raw: m.row.artist_raw,
+            })
+            .select("id").single();
+          if (error) throw error;
+          artistCache.set(key, data.id);
+          prog.artistsCreated++;
+        } catch (e: any) {
+          const { data } = await supabase.from("artists")
+            .select("id").eq("display_name", m.row.artist_display!).single();
+          if (data) artistCache.set(key, data.id);
+        }
+      }
+
+      // 4. Upsert works
+      prog.phase = "Saving works";
+      prog.total = included.length;
+      prog.current = 0;
+      setProgress({ ...prog });
+
+      const workIdMap = new Map<number, string>(); // rowIndex → workId
+
+      for (const m of included) {
+        prog.current++;
+        prog.detail = m.row.title || m.row.accession_number || `Row ${m.row.rowIndex}`;
         setProgress({ ...prog });
 
         try {
-          // 1. Artist
-          let artistId = m.existingArtistId;
-          if (!artistId && m.row.artist_name) {
-            const key = m.row.artist_name.trim().toLowerCase();
-            if (artistCache.has(key)) {
-              artistId = artistCache.get(key)!;
-            } else {
-              const parsed = parseArtistName(m.row.artist_name);
-              const { data, error } = await supabase
-                .from("artists")
-                .insert({
-                  display_name: parsed.display_name,
-                  family_name: parsed.family_name || null,
-                  given_name: parsed.given_name || null,
-                  name_raw: m.row.artist_name,
-                })
-                .select("id")
-                .single();
-              if (error) throw new Error(`Artist insert: ${error.message}`);
-              artistId = data.id;
-              artistCache.set(key, artistId);
-            }
-          }
+          const artistId = m.row.artist_display
+            ? artistCache.get(m.row.artist_display.toLowerCase()) || null
+            : null;
+          const locationId = m.row.location_full
+            ? locationCache.get(m.row.location_full.toLowerCase()) || null
+            : null;
 
-          // 2. Location
-          let locationId = m.existingLocationId;
-          let locBuilding = "";
-          let locFloor = "";
-          let locRoom = "";
-          let locFull = m.row.location_full;
+          const importStatus = setToNeedsReview ? "needs_review" : "published";
 
-          if (!locationId && m.row.location_full) {
-            const locKey = m.row.location_full.toLowerCase();
-            if (locationCache.has(locKey)) {
-              locationId = locationCache.get(locKey)!;
-            } else {
-              const parsed = parseLocation(m.row.location_full);
-              locBuilding = parsed.building;
-              locFloor = parsed.floor;
-              locRoom = parsed.room;
-
-              let buildingId = m.existingBuildingId;
-              if (!buildingId && parsed.building) {
-                const bKey = parsed.building.toLowerCase();
-                if (buildingCache.has(bKey)) {
-                  buildingId = buildingCache.get(bKey)!;
-                } else {
-                  const { data, error } = await supabase
-                    .from("buildings")
-                    .insert({ name: parsed.building })
-                    .select("id")
-                    .single();
-                  if (error) throw new Error(`Building insert: ${error.message}`);
-                  buildingId = data.id;
-                  buildingCache.set(bKey, buildingId);
-                }
-              }
-
-              const { data, error } = await supabase
-                .from("locations")
-                .insert({
-                  building_id: buildingId || null,
-                  building: parsed.building || "Unknown",
-                  floor: parsed.floor || null,
-                  room_name: parsed.room || null,
-                  full_location: m.row.location_full,
-                })
-                .select("id")
-                .single();
-              if (error) throw new Error(`Location insert: ${error.message}`);
-              locationId = data.id;
-              locationCache.set(locKey, locationId);
-            }
-          } else if (locationId) {
-            const parsed = parseLocation(m.row.location_full);
-            locBuilding = parsed.building;
-            locFloor = parsed.floor;
-            locRoom = parsed.room;
-          }
-
-          // 3. Work
           const workData: any = {
             title: m.row.title || "Untitled",
             barcode: m.row.barcode || null,
             accession_number: m.row.accession_number || null,
             date_created: m.row.date_created || null,
-            artist_name: m.row.artist_name || null,
-            artist_name_raw: m.row.artist_name || null,
-            artist_id: artistId || null,
+            date_year_start: m.row.date_year_start,
+            date_year_end: m.row.date_year_end,
+            date_certainty: m.row.date_certainty,
+            artist_name: m.row.artist_display || null,
+            artist_name_raw: m.row.artist_raw || null,
+            artist_id: artistId,
             medium: m.row.medium || null,
-            location_id: locationId || null,
-            location_building: locBuilding || null,
-            location_floor: locFloor || null,
-            location_room: locRoom || null,
-            location_full: locFull || null,
+            classification: m.row.classification || null,
+            classification_inferred: m.row.classification_inferred,
+            location_id: locationId,
+            location_building: m.row.location_building || null,
+            location_floor: m.row.location_floor || null,
+            location_room: m.row.location_room || null,
+            location_full: m.row.location_full || null,
+            dimensions_h: m.row.dimensions_h,
+            dimensions_w: m.row.dimensions_w,
+            dimensions_d: m.row.dimensions_d,
+            dimensions_display: m.row.dimensions_display,
+            is_on_display: m.row.is_on_display,
+            notes: m.row.notes || null,
+            subject_tags: m.row.subject_tags,
             source_file: sourceFile,
-            import_status: "published",
+            source_system: sourceSystem,
+            import_status: importStatus,
+            import_flags: m.row.import_flags.length > 0 ? m.row.import_flags : null,
+            data_quality_score: m.row.data_quality_score,
           };
 
-          let workId: string;
           if (m.status === "update" && m.existingWorkId) {
-            const { error } = await supabase.from("works").update(workData).eq("id", m.existingWorkId);
+            // Preserve credit_line and provenance with COALESCE logic
+            const updates = { ...workData };
+            if (!m.row.credit_line) delete updates.credit_line;
+            else updates.credit_line = m.row.credit_line;
+            if (!m.row.provenance) delete updates.provenance;
+            else updates.provenance = m.row.provenance;
+
+            const { error } = await supabase.from("works").update(updates).eq("id", m.existingWorkId);
             if (error) throw new Error(`Work update: ${error.message}`);
-            workId = m.existingWorkId;
+
+            // Manual array append
+            // Manual array append
+            const { data: existing } = await supabase.from("works").select("source_files").eq("id", m.existingWorkId).single();
+            const files = existing?.source_files || [];
+            if (!files.includes(sourceFile)) {
+              await supabase.from("works").update({ source_files: [...files, sourceFile] }).eq("id", m.existingWorkId);
+            }
+
+            workIdMap.set(m.row.rowIndex, m.existingWorkId);
             prog.updated++;
           } else {
+            workData.credit_line = m.row.credit_line || null;
+            workData.provenance = m.row.provenance || null;
+            workData.rights_status = m.row.rights_status || null;
+            workData.source_files = [sourceFile];
+
             const { data, error } = await supabase.from("works").insert(workData).select("id").single();
             if (error) throw new Error(`Work insert: ${error.message}`);
-            workId = data.id;
-            prog.imported++;
-          }
-
-          // 4. Image
-          const img = rowImageMap[m.row.rowIndex];
-          if (img) {
-            const filePath = `${workId}/${img.filename}`;
-            const file = new File([img.blob], img.filename, { type: img.mimeType });
-            const { error: uploadErr } = await supabase.storage.from("work-images").upload(filePath, file, { upsert: true });
-            if (uploadErr) throw new Error(`Image upload: ${uploadErr.message}`);
-
-            const { data: urlData } = supabase.storage.from("work-images").getPublicUrl(filePath);
-
-            const { error: assetErr } = await supabase.from("digital_assets").insert({
-              work_id: workId,
-              file_url: urlData.publicUrl,
-              filename: img.filename,
-              asset_type: "image",
-              is_primary: true,
-            });
-            if (assetErr) throw new Error(`Asset link: ${assetErr.message}`);
+            workIdMap.set(m.row.rowIndex, data.id);
+            prog.created++;
           }
         } catch (err: any) {
           prog.errors++;
           prog.errorDetails.push({ row: m.row.rowIndex, message: err.message });
         }
-
         setProgress({ ...prog });
       }
 
-      // Log import
+      // 5. Upload images
+      const imageRows = included.filter((m) => rowImageMap[m.row.rowIndex]);
+      prog.phase = "Uploading images";
+      prog.total = imageRows.length;
+      prog.current = 0;
+      setProgress({ ...prog });
+
+      for (const m of imageRows) {
+        prog.current++;
+        prog.detail = m.row.title || "";
+        setProgress({ ...prog });
+
+        const img = rowImageMap[m.row.rowIndex];
+        const workId = workIdMap.get(m.row.rowIndex);
+        if (!img || !workId) continue;
+
+        try {
+          const pathPrefix = m.row.accession_number
+            ? `works/${m.row.accession_number.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+            : `works/barcode-${m.row.barcode || m.row.rowIndex}`;
+          const filePath = `${pathPrefix}/primary.${img.ext}`;
+          const file = new File([img.blob], `primary.${img.ext}`, { type: img.mimeType });
+
+          const { error: uploadErr } = await supabase.storage
+            .from("artwork-images")
+            .upload(filePath, file, { upsert: true });
+          if (uploadErr) throw new Error(`Upload: ${uploadErr.message}`);
+
+          const { data: urlData } = supabase.storage.from("artwork-images").getPublicUrl(filePath);
+
+          // 6. Save digital asset
+          const { error: assetErr } = await supabase.from("digital_assets").insert({
+            work_id: workId,
+            file_url: urlData.publicUrl,
+            filename: `primary.${img.ext}`,
+            asset_type: "image",
+            is_primary: true,
+          });
+          if (assetErr) throw new Error(`Asset: ${assetErr.message}`);
+          prog.imagesUploaded++;
+        } catch (err: any) {
+          prog.errors++;
+          prog.errorDetails.push({ row: m.row.rowIndex, message: err.message });
+        }
+        setProgress({ ...prog });
+      }
+
+      // 7. Log import
+      prog.phase = "Logging import";
+      setProgress({ ...prog });
       await supabase.from("import_log").insert({
         source_file: sourceFile,
-        source_system: "Excel Import",
+        source_system: sourceSystem,
         total_rows: included.length,
-        imported: prog.imported,
+        imported: prog.created,
         skipped: prog.skipped,
         errors: prog.errors,
-        notes: `Updated: ${prog.updated}`,
+        notes: `Updated: ${prog.updated}, Artists: ${prog.artistsCreated}, Buildings: ${prog.buildingsCreated}, Images: ${prog.imagesUploaded}`,
       });
 
+      setPostImportData({
+        created: prog.created, updated: prog.updated,
+        artistsCreated: prog.artistsCreated, buildingsCreated: prog.buildingsCreated,
+        locationsCreated: prog.locationsCreated, imagesUploaded: prog.imagesUploaded,
+        newBuildings: newBuildingNames,
+      });
       setDone(true);
+      setProgress({ ...prog, phase: "Complete" });
     },
     []
   );
 
-  return { progress, done, execute };
+  return { progress, done, postImportData, execute };
 }
