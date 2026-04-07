@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Users, X, ExternalLink, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -13,6 +14,8 @@ import {
 import { usePortal } from "@/components/portal/PortalContext";
 import { useArtistsList, useDeleteArtist, type ArtistWithCount } from "@/hooks/useArtists";
 import { AddArtistDialog } from "@/components/portal/artists/AddArtistDialog";
+import { SelectionActionBar } from "@/components/portal/shared/SelectionActionBar";
+import { DeleteArtistsDialog } from "@/components/portal/shared/DeleteArtistsDialog";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
 
@@ -26,11 +29,16 @@ export const ArtistsListPage = () => {
   const portal = usePortal();
   const { data: artists, isLoading } = useArtistsList();
   const deleteArtist = useDeleteArtist();
+  const isAdmin = portal.role === "admin";
 
   const [search, setSearch] = useState("");
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ArtistWithCount | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+
+  // Batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchDelete, setShowBatchDelete] = useState(false);
 
   // Which letters have artists
   const lettersWithArtists = useMemo(() => {
@@ -56,6 +64,38 @@ export const ArtistsListPage = () => {
     }
     return list;
   }, [artists, activeLetter, search]);
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [search, activeLetter]);
+
+  // Escape key clears selection
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedIds(new Set());
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const toggleSelect = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllFiltered = useCallback(() => {
+    setSelectedIds(new Set(filtered.map((a) => a.id)));
+  }, [filtered]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -139,6 +179,20 @@ export const ArtistsListPage = () => {
         )}
       </div>
 
+      {/* Selection action bar (admin only) */}
+      {isAdmin && selectedIds.size > 0 && (
+        <SelectionActionBar
+          count={selectedIds.size}
+          totalCount={filtered.length}
+          allPageSelected={filtered.length > 0 && filtered.every((a) => selectedIds.has(a.id))}
+          hasMorePages={false}
+          onSelectAll={selectAllFiltered}
+          onClear={clearSelection}
+          onDelete={() => setShowBatchDelete(true)}
+          label="artists"
+        />
+      )}
+
       {/* Cards grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,11 +217,27 @@ export const ArtistsListPage = () => {
             <div
               key={artist.id}
               onClick={() => navigate(`${portal.basePath}/artists/${artist.id}`)}
-              className="group relative rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:shadow-md"
+              className={`group relative rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:shadow-md ${
+                selectedIds.has(artist.id) ? "ring-2 ring-accent bg-accent/5" : ""
+              }`}
               style={{ ["--hover-border" as string]: portal.accentColor }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = portal.accentColor)}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
             >
+              {/* Admin checkbox */}
+              {isAdmin && (
+                <div
+                  className="absolute top-3 left-3 z-10"
+                  onClick={(e) => toggleSelect(artist.id, e)}
+                >
+                  <Checkbox
+                    checked={selectedIds.has(artist.id)}
+                    aria-label={`Select ${artist.display_name}`}
+                    className="opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
+                  />
+                </div>
+              )}
+
               {/* Delete button */}
               <button
                 onClick={(e) => { e.stopPropagation(); setDeleteTarget(artist); }}
@@ -176,7 +246,7 @@ export const ArtistsListPage = () => {
                 <X className="h-3.5 w-3.5" />
               </button>
 
-              <div className="space-y-2">
+              <div className={`space-y-2 ${isAdmin ? "pl-6" : ""}`}>
                 <div className="flex items-center gap-2">
                   <span className="text-[15px] font-semibold text-card-foreground">{artist.display_name}</span>
                   {artist.is_isu_affiliated && (
@@ -212,7 +282,7 @@ export const ArtistsListPage = () => {
         </div>
       )}
 
-      {/* Delete confirmation */}
+      {/* Single delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -231,6 +301,15 @@ export const ArtistsListPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch delete dialog */}
+      <DeleteArtistsDialog
+        open={showBatchDelete}
+        onOpenChange={setShowBatchDelete}
+        selectedIds={Array.from(selectedIds)}
+        artists={(artists ?? []).map((a) => ({ id: a.id, display_name: a.display_name }))}
+        onDeleted={clearSelection}
+      />
 
       {/* Add artist dialog */}
       <AddArtistDialog open={showAdd} onOpenChange={setShowAdd} />

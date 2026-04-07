@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePortal } from "@/components/portal/PortalContext";
 import { usePrimaryImages } from "@/hooks/useWorksList";
 
@@ -47,9 +48,13 @@ const qualityColor = (score: number | null) => {
 interface WorksTableProps {
   works: Work[];
   loading: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleAll?: () => void;
+  showCheckboxes?: boolean;
 }
 
-export const WorksTable = ({ works, loading }: WorksTableProps) => {
+export const WorksTable = ({ works, loading, selectedIds, onToggleSelect, onToggleAll, showCheckboxes }: WorksTableProps) => {
   const navigate = useNavigate();
   const portal = usePortal();
   const workIds = works.map((w) => w.id);
@@ -78,6 +83,15 @@ export const WorksTable = ({ works, loading }: WorksTableProps) => {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
+            {showCheckboxes && (
+              <th className="px-3 py-2.5 w-[40px]">
+                <Checkbox
+                  checked={works.length > 0 && works.every((w) => selectedIds?.has(w.id))}
+                  onCheckedChange={() => onToggleAll?.()}
+                  aria-label="Select all"
+                />
+              </th>
+            )}
             <th className="px-3 py-2.5 text-left w-[52px]">Img</th>
             <th className="px-3 py-2.5 text-left w-[110px]">Accession</th>
             <th className="px-3 py-2.5 text-left min-w-[180px]">Title</th>
@@ -103,8 +117,17 @@ export const WorksTable = ({ works, loading }: WorksTableProps) => {
                 onClick={() => navigate(`${portal.basePath}/works/${work.id}`)}
                 className={`cursor-pointer transition-colors hover:bg-muted/40 ${
                   isReview ? "border-l-[3px] border-l-amber-400" : ""
-                }`}
+                } ${selectedIds?.has(work.id) ? "bg-accent/5" : ""}`}
               >
+                {showCheckboxes && (
+                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds?.has(work.id) ?? false}
+                      onCheckedChange={() => onToggleSelect?.(work.id)}
+                      aria-label={`Select ${work.title}`}
+                    />
+                  </td>
+                )}
                 {/* Image */}
                 <td className="px-3 py-2">
                   <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
