@@ -1,11 +1,9 @@
-import { useContext } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { usePortalContext } from "@/components/portal/PortalContext";
-import { ImportDataContext } from "./ExecuteStep";
+import { usePortal } from "@/components/portal/PortalContext";
+import { useImportContext } from "./ImportPage";
 
 interface Props {
   fileName: string;
@@ -13,11 +11,10 @@ interface Props {
 
 export function ResultsStep({ fileName }: Props) {
   const navigate = useNavigate();
-  const { role } = usePortalContext();
-  const { results } = useContext(ImportDataContext);
+  const { role } = usePortal();
+  const { matchResults } = useImportContext();
 
-  // Compute from results
-  const included = results.filter((r) => r.included);
+  const included = matchResults.filter((r) => r.included);
   const newCount = included.filter((r) => r.status === "new").length;
   const updateCount = included.filter((r) => r.status === "update").length;
 
@@ -25,7 +22,7 @@ export function ResultsStep({ fileName }: Props) {
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-green-600" />
+          <CheckCircle className="h-5 w-5 text-primary" />
           Import Complete
         </CardTitle>
       </CardHeader>
@@ -35,12 +32,12 @@ export function ResultsStep({ fileName }: Props) {
             <div className="text-2xl font-bold">{included.length}</div>
             <div className="text-xs text-muted-foreground">Total processed</div>
           </div>
-          <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{newCount}</div>
+          <div className="text-center p-3 bg-primary/10 rounded-lg">
+            <div className="text-2xl font-bold text-primary">{newCount}</div>
             <div className="text-xs text-muted-foreground">New works</div>
           </div>
-          <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{updateCount}</div>
+          <div className="text-center p-3 bg-secondary rounded-lg">
+            <div className="text-2xl font-bold">{updateCount}</div>
             <div className="text-xs text-muted-foreground">Updated</div>
           </div>
           <div className="text-center p-3 bg-muted rounded-lg">
@@ -54,8 +51,8 @@ export function ResultsStep({ fileName }: Props) {
         </p>
 
         <div className="flex gap-3">
-          <Button onClick={() => navigate(`/${role}/works?source_file=${encodeURIComponent(fileName)}`)}>
-            View imported works
+          <Button onClick={() => navigate(`/${role}/works`)}>
+            View works
           </Button>
           <Button variant="outline" onClick={() => window.location.reload()}>
             Import another file

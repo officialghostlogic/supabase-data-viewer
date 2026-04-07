@@ -1,25 +1,10 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useImportExecution } from "@/hooks/useImport";
-import { useImportMatching } from "@/hooks/useImport";
+import { useImportContext } from "./ImportPage";
 import type { EmbeddedImage } from "@/utils/extractEmbeddedImages";
-
-// This component receives state from parent via a shared context pattern
-// We'll use a simpler approach: the parent passes results via a global ref
-
-import { createContext, useState } from "react";
-
-interface ImportDataContextType {
-  results: ReturnType<typeof useImportMatching>["results"];
-  setResults: (r: any) => void;
-}
-
-export const ImportDataContext = createContext<ImportDataContextType>({
-  results: [],
-  setResults: () => {},
-});
 
 interface Props {
   rowImageMap: Record<number, EmbeddedImage>;
@@ -28,13 +13,13 @@ interface Props {
 }
 
 export function ExecuteStep({ rowImageMap, fileName, onDone }: Props) {
-  const { results } = useContext(ImportDataContext);
+  const { matchResults } = useImportContext();
   const { progress, done, execute } = useImportExecution();
   const [started, setStarted] = useState(false);
 
   const handleStart = () => {
     setStarted(true);
-    execute(results, rowImageMap, fileName);
+    execute(matchResults, rowImageMap, fileName);
   };
 
   useEffect(() => {
@@ -44,7 +29,7 @@ export function ExecuteStep({ rowImageMap, fileName, onDone }: Props) {
     }
   }, [done, onDone]);
 
-  const included = results.filter((r) => r.included);
+  const included = matchResults.filter((r) => r.included);
 
   if (!started) {
     return (
@@ -83,8 +68,8 @@ export function ExecuteStep({ rowImageMap, fileName, onDone }: Props) {
           {progress.current} / {progress.total} — {progress.currentLabel}
         </p>
         <div className="flex gap-4 text-sm">
-          <span className="text-green-600">✓ {progress.imported} new</span>
-          <span className="text-blue-600">↻ {progress.updated} updated</span>
+          <span className="text-primary">✓ {progress.imported} new</span>
+          <span className="text-muted-foreground">↻ {progress.updated} updated</span>
           {progress.errors > 0 && (
             <span className="text-destructive">✕ {progress.errors} errors</span>
           )}
