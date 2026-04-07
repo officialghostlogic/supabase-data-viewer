@@ -10,10 +10,12 @@ import { DashboardPage } from "@/components/portal/DashboardPage";
 import { PortalPlaceholder } from "@/components/portal/PortalPlaceholder";
 import { WorksListPage } from "@/components/portal/works/WorksListPage";
 import { WorkDetailPage } from "@/components/portal/works/detail/WorkDetailPage";
+import { ArtistsListPage } from "@/components/portal/artists/ArtistsListPage";
+import { ArtistProfilePage } from "@/components/portal/artists/ArtistProfilePage";
 
 const queryClient = new QueryClient();
 
-const placeholderSections = ["artists", "locations", "condition", "loans", "import", "reports"] as const;
+const placeholderSections = ["locations", "condition", "loans", "import", "reports"] as const;
 
 const portalRoutes = (
   <>
@@ -22,7 +24,8 @@ const portalRoutes = (
     <Route path="works/new" element={<PortalPlaceholder section="works" />} />
     <Route path="works/:id" element={<WorkDetailPage />} />
     <Route path="works/:id/edit" element={<WorkDetailPage />} />
-    <Route path="works/:id/edit" element={<PortalPlaceholder section="works" />} />
+    <Route path="artists" element={<ArtistsListPage />} />
+    <Route path="artists/:id" element={<ArtistProfilePage />} />
     {placeholderSections.map((s) => (
       <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
     ))}
