@@ -167,7 +167,7 @@ export function useCreateBuilding() {
 export function useUpdateBuilding() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; [key: string]: unknown }) => {
+    mutationFn: async ({ id, ...data }: { id: string; name?: string; short_name?: string | null; address?: string | null; campus_area?: string | null; description?: string | null; notes?: string | null; is_active?: boolean }) => {
       const { error } = await supabase.from("buildings").update(data).eq("id", id);
       if (error) throw error;
     },
