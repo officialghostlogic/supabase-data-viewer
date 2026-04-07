@@ -71,6 +71,11 @@ export const WorkDetailPage = () => {
       credit_line: w.credit_line ?? "",
       provenance: w.provenance ?? "",
       notes: w.notes ?? "",
+      location_id: w.location_id ?? null,
+      location_building: w.location_building ?? null,
+      location_floor: w.location_floor ?? null,
+      location_room: w.location_room ?? null,
+      location_full: w.location_full ?? null,
     });
     setEditing(true);
   };

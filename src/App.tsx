@@ -14,6 +14,7 @@ import { ArtistsListPage } from "@/components/portal/artists/ArtistsListPage";
 import { ArtistProfilePage } from "@/components/portal/artists/ArtistProfilePage";
 import { BuildingsListPage } from "@/components/portal/locations/BuildingsListPage";
 import { BuildingDetailPage } from "@/components/portal/locations/BuildingDetailPage";
+import { RoomDetailPage } from "@/components/portal/locations/RoomDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const portalRoutes = (
     <Route path="artists/:id" element={<ArtistProfilePage />} />
     <Route path="locations" element={<BuildingsListPage />} />
     <Route path="locations/:id" element={<BuildingDetailPage />} />
+    <Route path="locations/:id/:locationId" element={<RoomDetailPage />} />
     {placeholderSections.map((s) => (
       <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
     ))}

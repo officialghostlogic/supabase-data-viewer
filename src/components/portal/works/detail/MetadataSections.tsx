@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LocationPicker } from "./LocationPicker";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface MetadataSectionsProps {
@@ -165,11 +166,17 @@ export const MetadataSections = ({
 
       {/* LOCATION */}
       <SectionHeader title="Location" />
-      <Field label="Location">
-        <ReadValue value={location?.full_location ?? work.location_full ?? ([work.location_building, work.location_floor, work.location_room].filter(Boolean).join(" / ") || null)} />
-      </Field>
-      {building && (
-        <Field label="Building"><ReadValue value={building.name} /></Field>
+      {editing ? (
+        <LocationPicker draft={draft} setDraft={setDraft} work={work} />
+      ) : (
+        <>
+          <Field label="Location">
+            <ReadValue value={location?.full_location ?? work.location_full ?? ([work.location_building, work.location_floor, work.location_room].filter(Boolean).join(" / ") || null)} />
+          </Field>
+          {building && (
+            <Field label="Building"><ReadValue value={building.name} /></Field>
+          )}
+        </>
       )}
       <Field label="On Display">
         {editing ? (
