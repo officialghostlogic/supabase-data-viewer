@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePortal } from "@/components/portal/PortalContext";
 import { usePrimaryImages } from "@/hooks/useWorksList";
 
