@@ -15,10 +15,11 @@ import { ArtistProfilePage } from "@/components/portal/artists/ArtistProfilePage
 import { BuildingsListPage } from "@/components/portal/locations/BuildingsListPage";
 import { BuildingDetailPage } from "@/components/portal/locations/BuildingDetailPage";
 import { RoomDetailPage } from "@/components/portal/locations/RoomDetailPage";
+import { ImportPage } from "@/components/portal/import/ImportPage";
 
 const queryClient = new QueryClient();
 
-const placeholderSections = ["locations", "condition", "loans", "import", "reports"] as const;
+const placeholderSections = ["condition", "loans", "reports"] as const;
 
 const portalRoutes = (
   <>
