@@ -14,6 +14,7 @@ import { ArtistsListPage } from "@/components/portal/artists/ArtistsListPage";
 import { ArtistProfilePage } from "@/components/portal/artists/ArtistProfilePage";
 import { BuildingsListPage } from "@/components/portal/locations/BuildingsListPage";
 import { BuildingDetailPage } from "@/components/portal/locations/BuildingDetailPage";
+import { RoomDetailPage } from "@/components/portal/locations/RoomDetailPage";
 
 const queryClient = new QueryClient();
 

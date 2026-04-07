@@ -178,6 +178,81 @@ export function useUpdateBuilding() {
   });
 }
 
+export function useRoomDetail(locationId: string | undefined) {
+  return useQuery({
+    queryKey: ["room-detail", locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("locations")
+        .select("*")
+        .eq("id", locationId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useRoomWorks(locationId: string | undefined) {
+  return useQuery({
+    queryKey: ["room-works", locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data: works, error } = await supabase
+        .from("works")
+        .select("id, title, accession_number, artist_name, classification, medium, date_created, is_on_display, data_quality_score")
+        .eq("location_id", locationId!)
+        .order("title");
+      if (error) throw error;
+
+      // Get primary images
+      const workIds = (works ?? []).map((w) => w.id);
+      let imageMap = new Map<string, string>();
+      if (workIds.length > 0) {
+        const { data: assets } = await supabase
+          .from("digital_assets")
+          .select("work_id, file_url")
+          .in("work_id", workIds)
+          .eq("is_primary", true);
+        for (const a of assets ?? []) {
+          imageMap.set(a.work_id, a.file_url);
+        }
+      }
+
+      return (works ?? []).map((w) => ({
+        ...w,
+        image_url: imageMap.get(w.id) ?? null,
+      }));
+    },
+  });
+}
+
+export function useUpdateRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: {
+      id: string;
+      room_name?: string | null;
+      room_code?: string | null;
+      floor?: string | null;
+      location_type?: string | null;
+      climate_controlled?: boolean;
+      security_level?: string;
+      notes?: string | null;
+      full_location?: string;
+    }) => {
+      const { error } = await supabase.from("locations").update(data).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["room-detail"] });
+      qc.invalidateQueries({ queryKey: ["building-detail"] });
+      qc.invalidateQueries({ queryKey: ["buildings-index"] });
+    },
+  });
+}
+
 export function useCreateRoom() {
   const qc = useQueryClient();
   return useMutation({
