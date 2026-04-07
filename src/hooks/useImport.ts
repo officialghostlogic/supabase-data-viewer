@@ -338,10 +338,10 @@ export function useImportExecution() {
 
         try {
           const artistId = m.row.artist_display
-            ? artistCache.get(m.row.artist_display.toLowerCase()) || null
+            ? artistMap.get(m.row.artist_display.toLowerCase()) || null
             : null;
           const locationId = m.row.location_full
-            ? locationCache.get(m.row.location_full.toLowerCase()) || null
+            ? locationMap.get(m.row.location_full.toLowerCase()) || null
             : null;
 
           const importStatus = setToNeedsReview ? "needs_review" : "published";
