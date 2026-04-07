@@ -253,37 +253,73 @@ export function useImportExecution() {
         }
       }
 
-      // 3. Create artists
-      const uniqueArtists = new Map<string, MatchResult>();
+      // 3. Create artists — build a complete artistMap keyed by normalized display_name
+      const artistMap = new Map<string, string>(); // normalized display_name lowercase → id
+
+      // Gather all unique artist display names
+      const allArtistNames = new Set<string>();
       for (const m of included) {
-        if (m.row.artist_display && m.artistStatus === "new" && !artistCache.has(m.row.artist_display.toLowerCase()))
-          uniqueArtists.set(m.row.artist_display.toLowerCase(), m);
+        if (m.row.artist_display) allArtistNames.add(m.row.artist_display.toLowerCase());
       }
+
       prog.phase = "Creating artists";
-      prog.total = uniqueArtists.size;
+      prog.total = allArtistNames.size;
       prog.current = 0;
       setProgress({ ...prog });
 
-      for (const [key, m] of uniqueArtists) {
+      for (const key of allArtistNames) {
         prog.current++;
-        prog.detail = m.row.artist_display || "";
+        const sampleRow = included.find(m => m.row.artist_display?.toLowerCase() === key)!.row;
+        const displayName = sampleRow.artist_display!;
+        prog.detail = displayName;
         setProgress({ ...prog });
-        try {
-          const { data, error } = await supabase.from("artists")
-            .insert({
-              display_name: m.row.artist_display!,
-              family_name: m.row.artist_family || null,
-              given_name: m.row.artist_given || null,
-              name_raw: m.row.artist_raw,
-            })
-            .select("id").single();
-          if (error) throw error;
-          artistCache.set(key, data.id);
-          prog.artistsCreated++;
-        } catch (e: any) {
-          const { data } = await supabase.from("artists")
-            .select("id").eq("display_name", m.row.artist_display!).single();
-          if (data) artistCache.set(key, data.id);
+
+        // Check if already exists
+        const { data: existing } = await supabase.from("artists")
+          .select("id, display_name")
+          .eq("display_name", displayName)
+          .maybeSingle();
+
+        if (existing) {
+          artistMap.set(key, existing.id);
+        } else {
+          try {
+            const { data: newArtist, error } = await supabase.from("artists")
+              .insert({
+                display_name: displayName,
+                family_name: sampleRow.artist_family || null,
+                given_name: sampleRow.artist_given || null,
+                name_raw: sampleRow.artist_raw,
+                is_isu_affiliated: false,
+              })
+              .select("id").single();
+            if (error) throw error;
+            artistMap.set(key, newArtist.id);
+            prog.artistsCreated++;
+          } catch (e: any) {
+            // Race condition fallback
+            const { data } = await supabase.from("artists")
+              .select("id").eq("display_name", displayName).maybeSingle();
+            if (data) artistMap.set(key, data.id);
+          }
+        }
+      }
+
+      // Also build a complete locationMap
+      const locationMap = new Map<string, string>();
+      const allLocationKeys = new Set<string>();
+      for (const m of included) {
+        if (m.row.location_full) allLocationKeys.add(m.row.location_full.toLowerCase());
+      }
+      for (const key of allLocationKeys) {
+        const cached = locationCache.get(key);
+        if (cached) {
+          locationMap.set(key, cached);
+        } else {
+          const sampleRow = included.find(m => m.row.location_full?.toLowerCase() === key)!.row;
+          const { data } = await supabase.from("locations")
+            .select("id").eq("full_location", sampleRow.location_full!).maybeSingle();
+          if (data) locationMap.set(key, data.id);
         }
       }
 
