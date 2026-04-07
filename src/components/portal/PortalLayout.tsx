@@ -14,14 +14,12 @@ export const PortalLayout = ({ role }: PortalLayoutProps) => {
   return (
     <PortalProvider value={theme}>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <PortalSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <PortalTopBar />
-            <main className="flex-1 p-6">
-              <Outlet />
-            </main>
-          </div>
+        <PortalSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <PortalTopBar />
+          <main className="flex-1 p-6 bg-background">
+            <Outlet />
+          </main>
         </div>
       </SidebarProvider>
     </PortalProvider>
