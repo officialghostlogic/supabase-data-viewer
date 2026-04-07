@@ -1,16 +1,32 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const { data: count, isLoading, error } = useQuery({
+    queryKey: ["works-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("works")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count;
+    },
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="text-center space-y-4">
+        <h1 className="text-3xl font-bold text-foreground">ISU Art Collection</h1>
+        {isLoading && <p className="text-muted-foreground">Loading…</p>}
+        {error && <p className="text-destructive">Error: {(error as Error).message}</p>}
+        {count !== undefined && count !== null && (
+          <p className="text-xl text-muted-foreground">
+            <span className="font-semibold text-foreground">{count}</span> works in the collection
+          </p>
+        )}
+      </div>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
