@@ -4,11 +4,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
-import StaffPortal from "./pages/StaffPortal.tsx";
-import AdminPortal from "./pages/AdminPortal.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { PortalLayout } from "@/components/portal/PortalLayout";
+import { DashboardPage } from "@/components/portal/DashboardPage";
+import { PortalPlaceholder } from "@/components/portal/PortalPlaceholder";
 
 const queryClient = new QueryClient();
+
+const portalSections = ["works", "artists", "locations", "condition", "loans", "import", "reports"] as const;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -18,8 +21,29 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/staff" element={<StaffPortal />} />
-          <Route path="/admin" element={<AdminPortal />} />
+
+          {/* Staff Portal */}
+          <Route path="/staff" element={<PortalLayout role="staff" />}>
+            <Route index element={<DashboardPage />} />
+            {portalSections.map((s) => (
+              <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
+            ))}
+            {portalSections.map((s) => (
+              <Route key={`${s}-new`} path={`${s}/new`} element={<PortalPlaceholder section={s} />} />
+            ))}
+          </Route>
+
+          {/* Admin Portal */}
+          <Route path="/admin" element={<PortalLayout role="admin" />}>
+            <Route index element={<DashboardPage />} />
+            {portalSections.map((s) => (
+              <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
+            ))}
+            {portalSections.map((s) => (
+              <Route key={`${s}-new`} path={`${s}/new`} element={<PortalPlaceholder section={s} />} />
+            ))}
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
