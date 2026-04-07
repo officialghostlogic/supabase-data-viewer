@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
@@ -10,10 +11,15 @@ interface PortalLayoutProps {
 
 export const PortalLayout = ({ role }: PortalLayoutProps) => {
   const theme = getPortalTheme(role);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    setSidebarOpen(true);
+  }, [role]);
 
   return (
     <PortalProvider value={theme}>
-      <SidebarProvider>
+      <SidebarProvider open={sidebarOpen} onOpenChange={(open) => setSidebarOpen(open)}>
         <PortalSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <PortalTopBar />
