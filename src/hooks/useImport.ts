@@ -352,8 +352,7 @@ export function useImportExecution() {
             const { error } = await supabase.from("works").update(updates).eq("id", m.existingWorkId);
             if (error) throw new Error(`Work update: ${error.message}`);
 
-            // Append source_file to source_files array
-            await supabase.rpc("", {}).catch(() => {}); // no-op
+            // Manual array append
             // Manual array append
             const { data: existing } = await supabase.from("works").select("source_files").eq("id", m.existingWorkId).single();
             const files = existing?.source_files || [];
