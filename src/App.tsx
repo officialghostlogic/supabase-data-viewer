@@ -31,6 +31,7 @@ const portalRoutes = (
     <Route path="artists/:id" element={<ArtistProfilePage />} />
     <Route path="locations" element={<BuildingsListPage />} />
     <Route path="locations/:id" element={<BuildingDetailPage />} />
+    <Route path="locations/:id/:locationId" element={<RoomDetailPage />} />
     {placeholderSections.map((s) => (
       <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
     ))}
