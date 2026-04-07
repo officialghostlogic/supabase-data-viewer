@@ -1,5 +1,31 @@
 declare const XLSX: any;
 
+export function normalizeArtistName(rawName: string | null | undefined): {
+  display_name: string; name_raw: string | null; given_name: string | null; family_name: string | null;
+} | null {
+  if (!rawName || rawName.trim() === '') return null;
+  const name = rawName.trim();
+
+  const unknownValues = ['unknown', 'unknown maker', 'n/a', 'anonymous', ''];
+  if (unknownValues.includes(name.toLowerCase())) return null;
+
+  const toTitleCase = (s: string) => s.replace(/\b\w/g, c => c.toUpperCase());
+
+  if (name.includes(',')) {
+    const [last, first] = name.split(',', 2).map(p => p.trim());
+    const firstNorm = first === first.toLowerCase() ? toTitleCase(first) : first;
+    const lastNorm = last === last.toLowerCase() ? toTitleCase(last) : last;
+    return {
+      display_name: `${firstNorm} ${lastNorm}`,
+      name_raw: name,
+      given_name: firstNorm,
+      family_name: lastNorm,
+    };
+  }
+
+  return { display_name: name, name_raw: null, given_name: null, family_name: null };
+}
+
 export interface ProcessedRow {
   rowIndex: number;
   accession_number: string | null;
@@ -87,24 +113,17 @@ const EMBARK_MAPPING: ColumnMapping = {
   4: "artist", 5: "medium", 6: "location", 7: "skip",
 };
 
-export function parseWorkbook(file: File): Promise<{ rows: any[][]; sheetName: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const sheetName = wb.SheetNames[0];
-        const sheet = wb.Sheets[sheetName];
-        const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-        resolve({ rows, sheetName });
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
+export async function parseWorkbook(file: File): Promise<{ rows: any[][]; sheetName: string }> {
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type: "array" });
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    defval: '',
+    raw: false,
   });
+  return { rows, sheetName };
 }
 
 export function detectEmbarkFormat(rows: any[][]): boolean {
