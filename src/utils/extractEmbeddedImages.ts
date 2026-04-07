@@ -26,11 +26,8 @@ const MIME_MAP: Record<string, string> = {
   bmp: "image/bmp",
 };
 
-export default async function extractEmbeddedImages(file: File): Promise<ExtractionResult> {
-  const zip = await JSZip.loadAsync(file);
+async function loadMediaFiles(zip: any): Promise<Record<string, EmbeddedImage>> {
   const mediaFiles: Record<string, EmbeddedImage> = {};
-  const rowImageMap: Record<number, EmbeddedImage> = {};
-
   for (const [path, entry] of Object.entries(zip.files) as [string, any][]) {
     if (path.startsWith("xl/media/")) {
       const filename = path.split("/").pop()!;
@@ -46,12 +43,16 @@ export default async function extractEmbeddedImages(file: File): Promise<Extract
       };
     }
   }
+  return mediaFiles;
+}
 
-  if (Object.keys(mediaFiles).length === 0) {
-    return { hasImages: false, rowImageMap: {}, imageCount: 0 };
-  }
-
-  const drawingPaths = Object.keys(zip.files).filter((f) =>
+/** Traditional drawing-based images (twoCellAnchor / oneCellAnchor) */
+async function extractDrawingImages(
+  zip: any,
+  mediaFiles: Record<string, EmbeddedImage>
+): Promise<Record<number, EmbeddedImage>> {
+  const rowImageMap: Record<number, EmbeddedImage> = {};
+  const drawingPaths = Object.keys(zip.files).filter((f: string) =>
     /xl\/drawings\/drawing\d+\.xml$/.test(f)
   );
 
@@ -97,6 +98,107 @@ export default async function extractEmbeddedImages(file: File): Promise<Extract
       }
     }
   }
+
+  return rowImageMap;
+}
+
+/** Modern rich-data images (Excel 365+, stored in xl/richData/) */
+async function extractRichDataImages(
+  zip: any,
+  mediaFiles: Record<string, EmbeddedImage>
+): Promise<Record<number, EmbeddedImage>> {
+  const rowImageMap: Record<number, EmbeddedImage> = {};
+
+  // 1. Parse richValueRel.xml rels to get ordered image filenames
+  const relsPath = "xl/richData/_rels/richValueRel.xml.rels";
+  if (!zip.files[relsPath]) return rowImageMap;
+
+  const relsXml = await zip.files[relsPath].async("string");
+  const relsDoc = new DOMParser().parseFromString(relsXml, "text/xml");
+  const rIdToFile: Record<string, string> = {};
+  for (const rel of relsDoc.querySelectorAll("Relationship")) {
+    rIdToFile[rel.getAttribute("Id")!] = rel.getAttribute("Target")!.split("/").pop()!;
+  }
+
+  // 2. Parse richValueRel.xml to get ordered rId list
+  const rvRelPath = "xl/richData/richValueRel.xml";
+  if (!zip.files[rvRelPath]) return rowImageMap;
+  const rvRelXml = await zip.files[rvRelPath].async("string");
+  const rvRelDoc = new DOMParser().parseFromString(rvRelXml, "text/xml");
+  const orderedImageFiles: string[] = [];
+  for (const rel of rvRelDoc.querySelectorAll("rel")) {
+    let rId: string | null = null;
+    for (const attr of rel.attributes) {
+      if (attr.localName === "id") { rId = attr.value; break; }
+    }
+    if (rId && rIdToFile[rId]) {
+      orderedImageFiles.push(rIdToFile[rId]);
+    } else {
+      orderedImageFiles.push("");
+    }
+  }
+
+  // 3. Parse rdrichvalue.xml to map rv index → image index
+  const rvPath = "xl/richData/rdrichvalue.xml";
+  if (!zip.files[rvPath]) return rowImageMap;
+  const rvXml = await zip.files[rvPath].async("string");
+  const rvDoc = new DOMParser().parseFromString(rvXml, "text/xml");
+  const rvToImageIdx: number[] = [];
+  for (const rv of rvDoc.querySelectorAll("rv")) {
+    const vals = rv.querySelectorAll("v");
+    // First <v> is the image index into richValueRel
+    rvToImageIdx.push(vals.length > 0 ? parseInt(vals[0].textContent!, 10) : -1);
+  }
+
+  // 4. Parse sheet XML to find cells with vm attribute (value metadata)
+  const sheetPaths = Object.keys(zip.files).filter((f: string) =>
+    /xl\/worksheets\/sheet\d+\.xml$/.test(f)
+  );
+
+  for (const sheetPath of sheetPaths) {
+    const sheetXml = await zip.files[sheetPath].async("string");
+    const sheetDoc = new DOMParser().parseFromString(sheetXml, "text/xml");
+
+    for (const row of sheetDoc.querySelectorAll("row")) {
+      const rowNum = parseInt(row.getAttribute("r")!, 10); // 1-based
+      const rowIndex = rowNum - 1; // convert to 0-based
+
+      for (const cell of row.querySelectorAll("c")) {
+        const vm = cell.getAttribute("vm");
+        if (!vm) continue;
+
+        // vm is 1-based index into valueMetadata
+        const vmIdx = parseInt(vm, 10) - 1;
+        if (vmIdx < 0 || vmIdx >= rvToImageIdx.length) continue;
+
+        const imgIdx = rvToImageIdx[vmIdx];
+        if (imgIdx < 0 || imgIdx >= orderedImageFiles.length) continue;
+
+        const imgFile = orderedImageFiles[imgIdx];
+        if (imgFile && mediaFiles[imgFile] && !rowImageMap[rowIndex]) {
+          rowImageMap[rowIndex] = mediaFiles[imgFile];
+        }
+      }
+    }
+  }
+
+  return rowImageMap;
+}
+
+export default async function extractEmbeddedImages(file: File): Promise<ExtractionResult> {
+  const zip = await JSZip.loadAsync(file);
+  const mediaFiles = await loadMediaFiles(zip);
+
+  if (Object.keys(mediaFiles).length === 0) {
+    return { hasImages: false, rowImageMap: {}, imageCount: 0 };
+  }
+
+  // Try both extraction methods
+  const drawingMap = await extractDrawingImages(zip, mediaFiles);
+  const richDataMap = await extractRichDataImages(zip, mediaFiles);
+
+  // Merge: drawing takes precedence, then rich data fills gaps
+  const rowImageMap: Record<number, EmbeddedImage> = { ...richDataMap, ...drawingMap };
 
   return {
     hasImages: Object.keys(rowImageMap).length > 0,

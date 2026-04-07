@@ -300,13 +300,14 @@ export function useImportExecution() {
 
             const { data: urlData } = supabase.storage.from("work-images").getPublicUrl(filePath);
 
-            await supabase.from("digital_assets").insert({
+            const { error: assetErr } = await supabase.from("digital_assets").insert({
               work_id: workId,
               file_url: urlData.publicUrl,
               filename: img.filename,
               asset_type: "image",
               is_primary: true,
             });
+            if (assetErr) throw new Error(`Asset link: ${assetErr.message}`);
           }
         } catch (err: any) {
           prog.errors++;
