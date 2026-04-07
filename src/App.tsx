@@ -9,6 +9,7 @@ import { PortalLayout } from "@/components/portal/PortalLayout";
 import { DashboardPage } from "@/components/portal/DashboardPage";
 import { PortalPlaceholder } from "@/components/portal/PortalPlaceholder";
 import { WorksListPage } from "@/components/portal/works/WorksListPage";
+import { WorkDetailPage } from "@/components/portal/works/detail/WorkDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,8 @@ const portalRoutes = (
     <Route index element={<DashboardPage />} />
     <Route path="works" element={<WorksListPage />} />
     <Route path="works/new" element={<PortalPlaceholder section="works" />} />
-    <Route path="works/:id" element={<PortalPlaceholder section="works" />} />
+    <Route path="works/:id" element={<WorkDetailPage />} />
+    <Route path="works/:id/edit" element={<WorkDetailPage />} />
     <Route path="works/:id/edit" element={<PortalPlaceholder section="works" />} />
     {placeholderSections.map((s) => (
       <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
