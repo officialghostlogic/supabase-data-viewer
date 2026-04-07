@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProcessedRow, parseLocation } from "@/utils/parseExcelRow";
+import { ProcessedRow, parseLocation, normalizeArtistName } from "@/utils/parseExcelRow";
 import type { EmbeddedImage } from "@/utils/extractEmbeddedImages";
 
 export interface MatchResult {
