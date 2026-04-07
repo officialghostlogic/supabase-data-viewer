@@ -166,7 +166,7 @@ export const MetadataSections = ({
       {/* LOCATION */}
       <SectionHeader title="Location" />
       <Field label="Location">
-        <ReadValue value={location?.full_location ?? work.location_full ?? [work.location_building, work.location_floor, work.location_room].filter(Boolean).join(" / ") || null} />
+        <ReadValue value={location?.full_location ?? work.location_full ?? ([work.location_building, work.location_floor, work.location_room].filter(Boolean).join(" / ") || null)} />
       </Field>
       {building && (
         <Field label="Building"><ReadValue value={building.name} /></Field>
