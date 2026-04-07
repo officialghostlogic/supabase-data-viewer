@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LocationPicker } from "./LocationPicker";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface MetadataSectionsProps {
