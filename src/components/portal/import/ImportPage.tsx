@@ -7,6 +7,7 @@ import { ExecuteStep } from "./ExecuteStep";
 import { ColumnMapping, ProcessedRow, processRows, getEmbarkMapping, detectEmbarkFormat } from "@/utils/parseExcelRow";
 import type { EmbeddedImage } from "@/utils/extractEmbeddedImages";
 import { revokeImageUrls } from "@/utils/extractEmbeddedImages";
+import type { MatchResult } from "@/hooks/useImport";
 import { Check } from "lucide-react";
 
 const STEPS = ["Upload File", "Map Columns", "Preview & Clean", "Review & Push"];
@@ -24,8 +25,8 @@ export function ImportPage() {
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [hasHeader, setHasHeader] = useState(false);
   const [processedRows, setProcessedRows] = useState<ProcessedRow[]>([]);
+  const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
 
-  // Cleanup URLs on unmount
   useEffect(() => {
     return () => revokeImageUrls(rowImageMap);
   }, [rowImageMap]);
@@ -43,7 +44,6 @@ export function ImportPage() {
       const m = getEmbarkMapping();
       setMapping(m);
       setHasHeader(false);
-      // Skip mapping step → process and go to preview
       const processed = processRows(rows, m, false);
       setProcessedRows(processed);
       setStep(2);
@@ -58,6 +58,11 @@ export function ImportPage() {
     const processed = processRows(rawRows, m, header);
     setProcessedRows(processed);
     setStep(2);
+  };
+
+  const handlePreviewNext = (results: MatchResult[]) => {
+    setMatchResults(results);
+    setStep(3);
   };
 
   const goToStep = (target: number) => {
@@ -75,6 +80,7 @@ export function ImportPage() {
     setMapping({});
     setHasHeader(false);
     setProcessedRows([]);
+    setMatchResults([]);
   };
 
   return (
@@ -84,7 +90,6 @@ export function ImportPage() {
         <p className="text-sm text-muted-foreground">Import works, artists, and locations from spreadsheet files</p>
       </div>
 
-      {/* Step indicator */}
       <div className="flex items-center gap-1">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-1">
@@ -127,12 +132,13 @@ export function ImportPage() {
         <PreviewStep
           processedRows={processedRows}
           rowImageMap={rowImageMap}
-          onNext={() => setStep(3)}
+          onNext={handlePreviewNext}
           onBack={() => setStep(isEmbark ? 0 : 1)}
         />
       )}
       {step === 3 && (
         <ExecuteStep
+          matchResults={matchResults}
           rowImageMap={rowImageMap}
           fileName={fileName}
           sourceSystem={sourceSystem}
