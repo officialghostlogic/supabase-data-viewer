@@ -53,15 +53,16 @@ export const PortalSidebar = () => {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r-0"
+      className="border-r border-sidebar-border"
       style={{
         ["--sidebar-background" as string]: portal.sidebarBg,
-        ["--sidebar-foreground" as string]: "rgba(255,255,255,0.85)",
-        ["--sidebar-accent" as string]: portal.accentColor,
-        ["--sidebar-accent-foreground" as string]: "#ffffff",
-        ["--sidebar-border" as string]: "rgba(255,255,255,0.08)",
-        ["--sidebar-primary" as string]: portal.accentColor,
-        ["--sidebar-primary-foreground" as string]: "#ffffff",
+        ["--sidebar-foreground" as string]: "0 0% 100%",
+        ["--sidebar-accent" as string]: portal.accentHsl,
+        ["--sidebar-accent-foreground" as string]: "0 0% 100%",
+        ["--sidebar-border" as string]: "0 0% 100% / 0.08",
+        ["--sidebar-primary" as string]: portal.accentHsl,
+        ["--sidebar-primary-foreground" as string]: "0 0% 100%",
+        ["--sidebar-ring" as string]: portal.accentHsl,
       } as React.CSSProperties}
     >
       <SidebarContent>

@@ -23,7 +23,12 @@ export const PortalTopBar = () => {
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-muted-foreground" />
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold tracking-wider ${portal.badgeClass}`}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold tracking-wider"
+          style={{
+            backgroundColor: `hsl(${portal.accentHsl} / 0.15)`,
+            borderColor: `hsl(${portal.accentHsl} / 0.3)`,
+            color: portal.accentColor,
+          }}
         >
           {portal.badgeLabel}
         </span>
