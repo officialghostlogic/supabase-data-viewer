@@ -350,7 +350,8 @@ export function processRows(
       const rawTitle = String(get("title") || "").trim();
       const { title, flags } = cleanTitle(rawTitle);
       const rawArtist = String(get("artist") || "").trim();
-      const artist = parseArtistName(rawArtist);
+      const normalized = normalizeArtistName(rawArtist);
+      const artist = normalized || { display_name: "", name_raw: null, given_name: null, family_name: null };
       const rawMedium = cleanMedium(String(get("medium") || ""));
       const explicitClass = String(get("classification") || "").trim() || null;
       const { classification, inferred } = inferClassification(rawMedium, explicitClass);
