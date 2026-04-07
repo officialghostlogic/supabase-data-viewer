@@ -8,10 +8,27 @@ import NotFound from "./pages/NotFound.tsx";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { DashboardPage } from "@/components/portal/DashboardPage";
 import { PortalPlaceholder } from "@/components/portal/PortalPlaceholder";
+import { WorksListPage } from "@/components/portal/works/WorksListPage";
 
 const queryClient = new QueryClient();
 
-const portalSections = ["works", "artists", "locations", "condition", "loans", "import", "reports"] as const;
+const placeholderSections = ["artists", "locations", "condition", "loans", "import", "reports"] as const;
+
+const portalRoutes = (
+  <>
+    <Route index element={<DashboardPage />} />
+    <Route path="works" element={<WorksListPage />} />
+    <Route path="works/new" element={<PortalPlaceholder section="works" />} />
+    <Route path="works/:id" element={<PortalPlaceholder section="works" />} />
+    <Route path="works/:id/edit" element={<PortalPlaceholder section="works" />} />
+    {placeholderSections.map((s) => (
+      <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
+    ))}
+    {placeholderSections.map((s) => (
+      <Route key={`${s}-new`} path={`${s}/new`} element={<PortalPlaceholder section={s} />} />
+    ))}
+  </>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -21,29 +38,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-
-          {/* Staff Portal */}
           <Route path="/staff" element={<PortalLayout role="staff" />}>
-            <Route index element={<DashboardPage />} />
-            {portalSections.map((s) => (
-              <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
-            ))}
-            {portalSections.map((s) => (
-              <Route key={`${s}-new`} path={`${s}/new`} element={<PortalPlaceholder section={s} />} />
-            ))}
+            {portalRoutes}
           </Route>
-
-          {/* Admin Portal */}
           <Route path="/admin" element={<PortalLayout role="admin" />}>
-            <Route index element={<DashboardPage />} />
-            {portalSections.map((s) => (
-              <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
-            ))}
-            {portalSections.map((s) => (
-              <Route key={`${s}-new`} path={`${s}/new`} element={<PortalPlaceholder section={s} />} />
-            ))}
+            {portalRoutes}
           </Route>
-
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
