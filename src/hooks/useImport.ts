@@ -86,7 +86,9 @@ export function useImportMatching() {
           let artistStatus: "existing" | "new" = "new";
           let existingArtistId: string | undefined;
           if (row.artist_display) {
-            const id = artistsByName.get(row.artist_display.toLowerCase());
+            const normalized = normalizeArtistName(row.artist_display);
+            const lookupName = normalized ? normalized.display_name : row.artist_display;
+            const id = artistsByName.get(lookupName.toLowerCase());
             if (id) { artistStatus = "existing"; existingArtistId = id; }
           } else {
             artistStatus = "existing";
