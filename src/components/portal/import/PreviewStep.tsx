@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useImportMatching, type MatchResult } from "@/hooks/useImport";
+import { useImportMatching } from "@/hooks/useImport";
+import { useImportContext } from "./ImportPage";
 import type { ParsedRow } from "@/utils/parseExcelRow";
 import type { EmbeddedImage } from "@/utils/extractEmbeddedImages";
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function PreviewStep({ parsedRows, rowImageMap, onNext, onBack }: Props) {
+  const { matchResults, setMatchResults } = useImportContext();
   const { matching, results, runMatching, toggleRow, toggleAll } = useImportMatching();
 
   useEffect(() => {
@@ -23,6 +25,11 @@ export function PreviewStep({ parsedRows, rowImageMap, onNext, onBack }: Props) 
       runMatching(parsedRows, rowImageMap);
     }
   }, [parsedRows, rowImageMap, results.length, runMatching]);
+
+  // Sync results to context
+  useEffect(() => {
+    if (results.length > 0) setMatchResults(results);
+  }, [results, setMatchResults]);
 
   if (matching) {
     return (
@@ -44,15 +51,14 @@ export function PreviewStep({ parsedRows, rowImageMap, onNext, onBack }: Props) 
     included.filter((r) => r.locationStatus === "new" && r.row.location_full).map((r) => r.row.location_full.toLowerCase())
   ).size;
   const images = included.filter((r) => r.hasImage).length;
-  const allChecked = results.every((r) => r.included);
+  const allChecked = results.length > 0 && results.every((r) => r.included);
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
       <div className="flex flex-wrap gap-3">
         <Badge variant="secondary">{included.length} selected</Badge>
-        <Badge className="bg-green-600 text-white">{newWorks} new</Badge>
-        <Badge className="bg-blue-600 text-white">{updates} updates</Badge>
+        <Badge className="bg-primary text-primary-foreground">{newWorks} new</Badge>
+        <Badge className="bg-secondary text-secondary-foreground">{updates} updates</Badge>
         <Badge variant="outline">{newArtists} new artists</Badge>
         <Badge variant="outline">{newLocations} new locations</Badge>
         <Badge variant="outline">{images} images</Badge>
@@ -68,10 +74,7 @@ export function PreviewStep({ parsedRows, rowImageMap, onNext, onBack }: Props) 
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">
-                    <Checkbox
-                      checked={allChecked}
-                      onCheckedChange={(v) => toggleAll(!!v)}
-                    />
+                    <Checkbox checked={allChecked} onCheckedChange={(v) => toggleAll(!!v)} />
                   </TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Status</TableHead>
