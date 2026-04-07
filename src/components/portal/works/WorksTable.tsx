@@ -47,9 +47,13 @@ const qualityColor = (score: number | null) => {
 interface WorksTableProps {
   works: Work[];
   loading: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleAll?: () => void;
+  showCheckboxes?: boolean;
 }
 
-export const WorksTable = ({ works, loading }: WorksTableProps) => {
+export const WorksTable = ({ works, loading, selectedIds, onToggleSelect, onToggleAll, showCheckboxes }: WorksTableProps) => {
   const navigate = useNavigate();
   const portal = usePortal();
   const workIds = works.map((w) => w.id);
