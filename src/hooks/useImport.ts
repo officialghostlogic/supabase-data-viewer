@@ -42,13 +42,13 @@ export function useImportMatching() {
       setMatching(true);
       try {
         const { data: existingWorks } = await supabase
-          .from("works").select("id, accession_number, barcode");
+          .from("works").select("id, accession_number, barcode").is("deleted_at", null);
         const { data: existingArtists } = await supabase
-          .from("artists").select("id, display_name");
+          .from("artists").select("id, display_name").is("deleted_at", null);
         const { data: existingLocations } = await supabase
-          .from("locations").select("id, full_location, building_id");
+          .from("locations").select("id, full_location, building_id").is("deleted_at", null);
         const { data: existingBuildings } = await supabase
-          .from("buildings").select("id, name");
+          .from("buildings").select("id, name").is("deleted_at", null);
 
         const worksByAcc = new Map<string, string>();
         const worksByBarcode = new Map<string, string>();
