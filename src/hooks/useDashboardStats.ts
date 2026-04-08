@@ -5,7 +5,7 @@ export const useDashboardStats = () => {
   const totalWorks = useQuery({
     queryKey: ["dashboard", "total-works"],
     queryFn: async () => {
-      const { count, error } = await supabase.from("works").select("*", { count: "exact", head: true });
+      const { count, error } = await supabase.from("works").select("*", { count: "exact", head: true }).is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -17,6 +17,7 @@ export const useDashboardStats = () => {
       const { count, error } = await supabase
         .from("works")
         .select("*", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("is_on_display", true);
       if (error) throw error;
       return count ?? 0;
@@ -29,6 +30,7 @@ export const useDashboardStats = () => {
       const { count, error } = await supabase
         .from("works")
         .select("*", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("is_on_display", false);
       if (error) throw error;
       return count ?? 0;
@@ -41,6 +43,7 @@ export const useDashboardStats = () => {
       const { count, error } = await supabase
         .from("works")
         .select("*", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("import_status", "needs_review");
       if (error) throw error;
       return count ?? 0;
@@ -50,7 +53,7 @@ export const useDashboardStats = () => {
   const totalArtists = useQuery({
     queryKey: ["dashboard", "total-artists"],
     queryFn: async () => {
-      const { count, error } = await supabase.from("artists").select("*", { count: "exact", head: true });
+      const { count, error } = await supabase.from("artists").select("*", { count: "exact", head: true }).is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -59,7 +62,7 @@ export const useDashboardStats = () => {
   const totalBuildings = useQuery({
     queryKey: ["dashboard", "total-buildings"],
     queryFn: async () => {
-      const { count, error } = await supabase.from("buildings").select("*", { count: "exact", head: true });
+      const { count, error } = await supabase.from("buildings").select("*", { count: "exact", head: true }).is("deleted_at", null);
       if (error) throw error;
       return count ?? 0;
     },
@@ -74,7 +77,8 @@ export const useClassificationCounts = () =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("works")
-        .select("classification");
+        .select("classification")
+        .is("deleted_at", null);
       if (error) throw error;
 
       const counts: Record<string, number> = {};

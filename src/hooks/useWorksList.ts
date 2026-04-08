@@ -22,6 +22,7 @@ export const useWorksList = (filters: WorksFilters) =>
           "id, accession_number, barcode, title, artist_name, classification, medium, location_building, location_floor, location_room, is_on_display, import_status, import_flags, date_created, data_quality_score, created_at",
           { count: "exact" }
         )
+        .is("deleted_at", null)
         .order("accession_number", { ascending: true, nullsFirst: false });
 
       if (filters.classification) {
@@ -63,6 +64,7 @@ export const useWorksFilterOptions = () => {
       const { data, error } = await supabase
         .from("works")
         .select("classification")
+        .is("deleted_at", null)
         .not("classification", "is", null);
       if (error) throw error;
       const unique = [...new Set(data.map((d) => d.classification).filter(Boolean))] as string[];
@@ -77,6 +79,7 @@ export const useWorksFilterOptions = () => {
       const { data, error } = await supabase
         .from("works")
         .select("location_building")
+        .is("deleted_at", null)
         .not("location_building", "is", null);
       if (error) throw error;
       const unique = [...new Set(data.map((d) => d.location_building).filter(Boolean))] as string[];
