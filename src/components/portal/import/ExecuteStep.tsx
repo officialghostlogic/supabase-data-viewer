@@ -17,6 +17,7 @@ interface Props {
   fileName: string;
   sourceSystem: string;
   onReset: () => void;
+  onPushingChange?: (pushing: boolean) => void;
 }
 
 export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem, onReset }: Props) {
