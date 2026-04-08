@@ -278,6 +278,7 @@ export function useImportExecution() {
         const { data: existing } = await supabase.from("artists")
           .select("id, display_name")
           .eq("display_name", displayName)
+          .is("deleted_at", null)
           .maybeSingle();
 
         if (existing) {
@@ -299,7 +300,7 @@ export function useImportExecution() {
           } catch (e: any) {
             // Race condition fallback
             const { data } = await supabase.from("artists")
-              .select("id").eq("display_name", displayName).maybeSingle();
+              .select("id").eq("display_name", displayName).is("deleted_at", null).maybeSingle();
             if (data) artistMap.set(key, data.id);
           }
         }
