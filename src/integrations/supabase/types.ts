@@ -20,6 +20,8 @@ export type Database = {
           birth_year: number | null
           created_at: string | null
           death_year: number | null
+          deleted_at: string | null
+          deleted_by: string | null
           display_name: string
           family_name: string | null
           given_name: string | null
@@ -36,6 +38,8 @@ export type Database = {
           birth_year?: number | null
           created_at?: string | null
           death_year?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           display_name: string
           family_name?: string | null
           given_name?: string | null
@@ -52,6 +56,8 @@ export type Database = {
           birth_year?: number | null
           created_at?: string | null
           death_year?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           display_name?: string
           family_name?: string | null
           given_name?: string | null
@@ -71,6 +77,8 @@ export type Database = {
           building_code: string | null
           campus_area: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -86,6 +94,8 @@ export type Database = {
           building_code?: string | null
           campus_area?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -101,6 +111,8 @@ export type Database = {
           building_code?: string | null
           campus_area?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -120,6 +132,7 @@ export type Database = {
           condition_notes: string | null
           created_at: string | null
           damage_description: string | null
+          deleted_at: string | null
           id: string
           next_review_date: string | null
           overall_condition: string
@@ -133,6 +146,7 @@ export type Database = {
           condition_notes?: string | null
           created_at?: string | null
           damage_description?: string | null
+          deleted_at?: string | null
           id?: string
           next_review_date?: string | null
           overall_condition: string
@@ -146,6 +160,7 @@ export type Database = {
           condition_notes?: string | null
           created_at?: string | null
           damage_description?: string | null
+          deleted_at?: string | null
           id?: string
           next_review_date?: string | null
           overall_condition?: string
@@ -175,6 +190,7 @@ export type Database = {
           asset_type: string | null
           caption: string | null
           copyright_notice: string | null
+          deleted_at: string | null
           file_url: string
           filename: string | null
           id: string
@@ -187,6 +203,7 @@ export type Database = {
           asset_type?: string | null
           caption?: string | null
           copyright_notice?: string | null
+          deleted_at?: string | null
           file_url: string
           filename?: string | null
           id?: string
@@ -199,6 +216,7 @@ export type Database = {
           asset_type?: string | null
           caption?: string | null
           copyright_notice?: string | null
+          deleted_at?: string | null
           file_url?: string
           filename?: string | null
           id?: string
@@ -267,6 +285,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string | null
           created_at: string | null
+          deleted_at: string | null
           id: string
           insurance_value: number | null
           is_active: boolean | null
@@ -282,6 +301,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           insurance_value?: number | null
           is_active?: boolean | null
@@ -297,6 +317,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           insurance_value?: number | null
           is_active?: boolean | null
@@ -329,6 +350,8 @@ export type Database = {
           building_id: string | null
           climate_controlled: boolean | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           floor: string | null
           full_location: string | null
           id: string
@@ -343,6 +366,8 @@ export type Database = {
           building_id?: string | null
           climate_controlled?: boolean | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           floor?: string | null
           full_location?: string | null
           id?: string
@@ -357,6 +382,8 @@ export type Database = {
           building_id?: string | null
           climate_controlled?: boolean | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           floor?: string | null
           full_location?: string | null
           id?: string
@@ -393,6 +420,8 @@ export type Database = {
           date_created: string | null
           date_year_end: number | null
           date_year_start: number | null
+          deleted_at: string | null
+          deleted_by: string | null
           dimensions_d: number | null
           dimensions_display: string | null
           dimensions_h: number | null
@@ -434,6 +463,8 @@ export type Database = {
           date_created?: string | null
           date_year_end?: number | null
           date_year_start?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           dimensions_d?: number | null
           dimensions_display?: string | null
           dimensions_h?: number | null
@@ -475,6 +506,8 @@ export type Database = {
           date_created?: string | null
           date_year_end?: number | null
           date_year_start?: number | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           dimensions_d?: number | null
           dimensions_display?: string | null
           dimensions_h?: number | null
@@ -601,7 +634,17 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      purge_deleted_records: {
+        Args: { days_old?: number }
+        Returns: {
+          purged_count: number
+          table_name: string
+        }[]
+      }
+      restore_record: {
+        Args: { record_id: string; table_name: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
