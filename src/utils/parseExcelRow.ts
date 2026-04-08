@@ -261,14 +261,33 @@ export function cleanTitle(raw: string | null): { title: string; flags: string[]
 }
 
 const CLASSIFICATION_RULES: [RegExp, string][] = [
-  [/oil|acrylic on canvas|tempera/i, "Painting"],
-  [/etching|lithograph|serigraph|linocut|intaglio/i, "Print"],
-  [/archival print|inkjet print|digital photo|photograph/i, "Photography"],
-  [/pencil|chalk|charcoal|india ink|watercolor|pastel/i, "Drawing"],
-  [/ceramic|stoneware|earthenware|raku|porcelain/i, "Ceramic"],
-  [/bronze|steel|iron|aluminum|cast iron/i, "Sculpture"],
-  [/fabric|textile|felt|fiber/i, "Textile"],
-  [/glass|blown|flint|amberina/i, "Mixed Media"],
+  // Photography — MUST be checked before Print rules
+  // (gelatin prints are photographic, not printmaking)
+  [/gelatin|daguerreotype|cyanotype|albumen|ambrotype|tintype|chromogenic|c-print|archival print|inkjet|digital print|photograph|photo|camera|object scan/i, "Photography"],
+
+  // Painting
+  [/oil|acrylic|tempera|gouache|fresco|encaustic|enamel|airbrush|latex|gesso|masonite|on canvas|on panel|on board/i, "Painting"],
+
+  // Print (printmaking — NOT photographic prints)
+  [/etching|lithograph|serigraph|silkscreen|screenprint|linocut|woodcut|engraving|intaglio|mezzotint|aquatint|monotype|monoprint|relief|letterpress|risograph|giclée/i, "Print"],
+
+  // Drawing
+  [/pencil|graphite|chalk|charcoal|india ink|pen and ink|ballpoint|marker|crayon|pastel|conté|watercolor|ink on paper|colored pencil|color pencil/i, "Drawing"],
+
+  // Sculpture
+  [/bronze|cast iron|steel|aluminum|welded|forged|carved wood|stone|marble|granite|ceramic sculpture|plaster|resin|fiberglass|found object|assemblage|installation/i, "Sculpture"],
+
+  // Ceramic
+  [/ceramic|stoneware|earthenware|porcelain|raku|glaze|kiln|terracotta|clay|thrown|hand-built/i, "Ceramic"],
+
+  // Textile
+  [/fabric|textile|fiber|felt|woven|tapestry|embroidery|quilted|cotton|wool|silk|linen/i, "Textile"],
+
+  // Mixed Media / New Media
+  [/mixed media|collage|video|digital|computer|electronic|sound|neon|light|projection|magazine|newspaper clipping/i, "Mixed Media"],
+
+  // Photography catch-all
+  [/silver|print on paper/i, "Photography"],
 ];
 
 export function inferClassification(medium: string | null, explicit: string | null): {
@@ -276,8 +295,18 @@ export function inferClassification(medium: string | null, explicit: string | nu
 } {
   if (explicit && explicit.trim()) return { classification: explicit.trim(), inferred: false };
   if (!medium) return { classification: "Unknown", inferred: true };
+  const m = medium.toLowerCase();
+
+  // Special compound cases: "paint on paper" → Drawing, not Painting
+  if (/paint on paper/i.test(m) && !/on canvas|on panel|on board/i.test(m))
+    return { classification: "Drawing", inferred: true };
+
+  // "tempera and collage" or similar mixed technique → Mixed Media
+  if (/collage/i.test(m) && /tempera|acrylic|oil|paint/i.test(m))
+    return { classification: "Mixed Media", inferred: true };
+
   for (const [regex, cls] of CLASSIFICATION_RULES) {
-    if (regex.test(medium)) return { classification: cls, inferred: true };
+    if (regex.test(m)) return { classification: cls, inferred: true };
   }
   return { classification: "Unknown", inferred: true };
 }
