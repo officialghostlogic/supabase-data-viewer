@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Image,
@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Landmark,
+  Trash2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -29,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { usePortal } from "@/components/portal/PortalContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useTrashTotal } from "@/hooks/useTrash";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, path: "" },
@@ -47,8 +49,10 @@ export const PortalSidebar = () => {
   const { dark, toggle: toggleTheme } = useTheme();
   const portal = usePortal();
   const location = useLocation();
+  const trashTotal = useTrashTotal();
 
   const portalLabel = portal.role === "staff" ? "Staff Portal" : "Admin Portal";
+  const isAdmin = portal.role === "admin";
 
   return (
     <Sidebar
@@ -115,6 +119,43 @@ export const PortalSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Trash - admin only */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname.startsWith(`${portal.basePath}/trash`)}
+                    tooltip="Trash"
+                  >
+                    <NavLink
+                      to={`${portal.basePath}/trash`}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      activeClassName="!text-white !bg-white/[0.1]"
+                      style={location.pathname.startsWith(`${portal.basePath}/trash`) ? { borderLeft: `3px solid ${portal.accentColor}` } : undefined}
+                    >
+                      <div className="relative">
+                        <Trash2 className="h-4 w-4 shrink-0" />
+                        {trashTotal > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                            {trashTotal > 99 ? "99+" : trashTotal}
+                          </span>
+                        )}
+                      </div>
+                      {!collapsed && <span>Trash</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-white/[0.08] p-2 space-y-1">
