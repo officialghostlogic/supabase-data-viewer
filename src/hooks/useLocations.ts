@@ -38,17 +38,20 @@ export function useBuildingsIndex() {
       const { data: buildings, error: bErr } = await supabase
         .from("buildings")
         .select("*")
+        .is("deleted_at", null)
         .order("name");
       if (bErr) throw bErr;
 
       const { data: locations, error: lErr } = await supabase
         .from("locations")
-        .select("id, building_id, floor");
+        .select("id, building_id, floor")
+        .is("deleted_at", null);
       if (lErr) throw lErr;
 
       const { data: works, error: wErr } = await supabase
         .from("works")
-        .select("id, location_id");
+        .select("id, location_id")
+        .is("deleted_at", null);
       if (wErr) throw wErr;
 
       const locationsByBuilding = new Map<string, typeof locations>();
@@ -95,6 +98,7 @@ export function useBuildingDetail(id: string | undefined) {
         .from("buildings")
         .select("*")
         .eq("id", id!)
+        .is("deleted_at", null)
         .single();
       if (bErr) throw bErr;
 
@@ -102,6 +106,7 @@ export function useBuildingDetail(id: string | undefined) {
         .from("locations")
         .select("*")
         .eq("building_id", id!)
+        .is("deleted_at", null)
         .order("floor")
         .order("room_name");
       if (lErr) throw lErr;
@@ -114,7 +119,8 @@ export function useBuildingDetail(id: string | undefined) {
         const { data: works, error: wErr } = await supabase
           .from("works")
           .select("id, location_id, is_on_display")
-          .in("location_id", locationIds);
+          .in("location_id", locationIds)
+          .is("deleted_at", null);
         if (wErr) throw wErr;
         for (const w of works || []) {
           if (w.location_id) {
@@ -187,6 +193,7 @@ export function useRoomDetail(locationId: string | undefined) {
         .from("locations")
         .select("*")
         .eq("id", locationId!)
+        .is("deleted_at", null)
         .single();
       if (error) throw error;
       return data;
@@ -203,10 +210,10 @@ export function useRoomWorks(locationId: string | undefined) {
         .from("works")
         .select("id, title, accession_number, artist_name, classification, medium, date_created, is_on_display, data_quality_score")
         .eq("location_id", locationId!)
+        .is("deleted_at", null)
         .order("title");
       if (error) throw error;
 
-      // Get primary images
       const workIds = (works ?? []).map((w) => w.id);
       let imageMap = new Map<string, string>();
       if (workIds.length > 0) {

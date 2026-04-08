@@ -6,12 +6,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-interface LinkedCounts {
-  images: number;
-  conditions: number;
-  loans: number;
-}
+import { usePortal } from "@/components/portal/PortalContext";
 
 interface DeleteWorksDialogProps {
   open: boolean;
@@ -27,43 +22,22 @@ export const DeleteWorksDialog = ({
   onDeleted,
 }: DeleteWorksDialogProps) => {
   const qc = useQueryClient();
-  const [linked, setLinked] = useState<LinkedCounts | null>(null);
+  const portal = usePortal();
   const count = selectedIds.length;
 
-  useEffect(() => {
-    if (!open || selectedIds.length === 0) {
-      setLinked(null);
-      return;
-    }
-    (async () => {
-      const [imgRes, condRes, loanRes] = await Promise.all([
-        supabase.from("digital_assets").select("work_id", { count: "exact", head: true }).in("work_id", selectedIds),
-        supabase.from("condition_reports").select("work_id", { count: "exact", head: true }).in("work_id", selectedIds),
-        supabase.from("loans").select("work_id", { count: "exact", head: true }).in("work_id", selectedIds),
-      ]);
-      setLinked({
-        images: imgRes.count ?? 0,
-        conditions: condRes.count ?? 0,
-        loans: loanRes.count ?? 0,
-      });
-    })();
-  }, [open, selectedIds]);
-
-  const deleteMutation = useMutation({
+  const softDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error: e1 } = await supabase.from("digital_assets").delete().in("work_id", ids);
-      if (e1) throw e1;
-      const { error: e2 } = await supabase.from("condition_reports").delete().in("work_id", ids);
-      if (e2) throw e2;
-      const { error: e3 } = await supabase.from("loans").delete().in("work_id", ids);
-      if (e3) throw e3;
-      const { error: e4 } = await supabase.from("works").delete().in("id", ids);
-      if (e4) throw e4;
+      const { error } = await supabase
+        .from("works")
+        .update({ deleted_at: new Date().toISOString(), deleted_by: portal.role })
+        .in("id", ids);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(`${count} works deleted`);
+      toast.success(`${count} works moved to trash`);
       qc.invalidateQueries({ queryKey: ["works-list"] });
       qc.invalidateQueries({ queryKey: ["primary-images"] });
+      qc.invalidateQueries({ queryKey: ["trash-counts"] });
       onOpenChange(false);
       onDeleted();
     },
@@ -74,34 +48,19 @@ export const DeleteWorksDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {count} works?</DialogTitle>
+          <DialogTitle>Move {count} works to trash?</DialogTitle>
           <DialogDescription className="space-y-2 pt-2">
-            <p>This will permanently delete {count} works and cannot be undone.</p>
-            {linked && linked.images > 0 && (
-              <p className="text-amber-600 dark:text-amber-400">
-                ⚠ {linked.images} works have images — these will also be deleted from storage.
-              </p>
-            )}
-            {linked && linked.conditions > 0 && (
-              <p className="text-amber-600 dark:text-amber-400">
-                ⚠ {linked.conditions} works have condition reports — these will also be deleted.
-              </p>
-            )}
-            {linked && linked.loans > 0 && (
-              <p className="text-amber-600 dark:text-amber-400">
-                ⚠ {linked.loans} works are on loan records — these will also be deleted.
-              </p>
-            )}
+            <p>These works will be moved to the trash and hidden from all views. They can be restored within 90 days.</p>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             variant="destructive"
-            onClick={() => deleteMutation.mutate(selectedIds)}
-            disabled={deleteMutation.isPending || !linked}
+            onClick={() => softDeleteMutation.mutate(selectedIds)}
+            disabled={softDeleteMutation.isPending}
           >
-            {deleteMutation.isPending ? "Deleting…" : `Delete ${count} works`}
+            {softDeleteMutation.isPending ? "Moving…" : `Move ${count} to Trash`}
           </Button>
         </DialogFooter>
       </DialogContent>

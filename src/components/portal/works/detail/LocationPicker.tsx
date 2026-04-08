@@ -23,6 +23,7 @@ function useActiveBuildings() {
       const { data, error } = await supabase
         .from("buildings")
         .select("id, name, short_name")
+        .is("deleted_at", null)
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
@@ -41,6 +42,7 @@ function useRoomsForBuilding(buildingId: string | null) {
         .from("locations")
         .select("id, floor, room_name, full_location")
         .eq("building_id", buildingId!)
+        .is("deleted_at", null)
         .order("floor")
         .order("room_name");
       if (error) throw error;
@@ -54,7 +56,6 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
   const createBuilding = useCreateBuilding();
   const createRoom = useCreateRoom();
 
-  // Determine selected building from draft or existing location
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [addingBuilding, setAddingBuilding] = useState(false);
   const [newBuildingName, setNewBuildingName] = useState("");
@@ -64,14 +65,11 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
 
   const { data: rooms } = useRoomsForBuilding(selectedBuildingId);
 
-  // Initialize building selection from current location
   useEffect(() => {
     if (!buildings || selectedBuildingId) return;
     if (draft.location_id && rooms) return;
-    // Try to find building from current work location
     const currentLocId = (draft.location_id as string) || work.location_id;
     if (currentLocId && buildings.length > 0) {
-      // We need to look up which building this location belongs to
       supabase.from("locations").select("building_id").eq("id", currentLocId).single()
         .then(({ data }) => {
           if (data?.building_id) setSelectedBuildingId(data.building_id);
@@ -85,7 +83,6 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
       return;
     }
     setSelectedBuildingId(val);
-    // Clear room selection when building changes
     setDraft("location_id", null);
     setDraft("location_building", buildings?.find((b) => b.id === val)?.name ?? null);
     setDraft("location_floor", null);
@@ -138,7 +135,6 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
     toast.success("Room added");
   };
 
-  // Group rooms by floor
   const floorGroups = new Map<string, typeof rooms>();
   for (const r of rooms ?? []) {
     const key = r.floor ?? "Unassigned";
@@ -151,7 +147,6 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
 
   return (
     <div className="space-y-2">
-      {/* Building select */}
       <Label className="text-xs">Building</Label>
       {addingBuilding ? (
         <div className="flex gap-2">
@@ -173,7 +168,6 @@ export function LocationPicker({ draft, setDraft, work }: LocationPickerProps) {
         </Select>
       )}
 
-      {/* Room select */}
       {selectedBuildingId && !addingBuilding && (
         <>
           <Label className="text-xs mt-2">Room</Label>

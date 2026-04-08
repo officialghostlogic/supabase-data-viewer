@@ -16,6 +16,7 @@ import { BuildingsListPage } from "@/components/portal/locations/BuildingsListPa
 import { BuildingDetailPage } from "@/components/portal/locations/BuildingDetailPage";
 import { RoomDetailPage } from "@/components/portal/locations/RoomDetailPage";
 import { ImportPage } from "@/components/portal/import/ImportPage";
+import { TrashPage } from "@/components/portal/trash/TrashPage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const portalRoutes = (
     <Route path="locations/:id" element={<BuildingDetailPage />} />
     <Route path="locations/:id/:locationId" element={<RoomDetailPage />} />
     <Route path="import" element={<ImportPage />} />
+    <Route path="trash" element={<TrashPage />} />
     {placeholderSections.map((s) => (
       <Route key={s} path={s} element={<PortalPlaceholder section={s} />} />
     ))}

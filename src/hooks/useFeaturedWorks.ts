@@ -8,6 +8,7 @@ export const useFeaturedWorks = () =>
       const { data, error } = await supabase
         .from("works")
         .select("id, title, artist_name, date_created, classification, is_on_display")
+        .is("deleted_at", null)
         .eq("is_on_display", true)
         .limit(6);
       if (error) throw error;

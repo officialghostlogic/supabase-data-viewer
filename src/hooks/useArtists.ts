@@ -18,18 +18,18 @@ export const useArtistsList = () =>
   useQuery({
     queryKey: ["artists-list"],
     queryFn: async () => {
-      // Get all artists
       const { data: artists, error: aErr } = await supabase
         .from("artists")
         .select("id, display_name, given_name, family_name, nationality, birth_year, death_year, is_isu_affiliated, ulan_id")
+        .is("deleted_at", null)
         .order("family_name", { ascending: true })
         .order("given_name", { ascending: true });
       if (aErr) throw aErr;
 
-      // Get work counts per artist
       const { data: works, error: wErr } = await supabase
         .from("works")
-        .select("artist_id");
+        .select("artist_id")
+        .is("deleted_at", null);
       if (wErr) throw wErr;
 
       const countMap: Record<string, number> = {};
@@ -53,6 +53,7 @@ export const useArtistDetail = (id: string) =>
         .from("artists")
         .select("*")
         .eq("id", id)
+        .is("deleted_at", null)
         .single();
       if (error) throw error;
       return data;
@@ -68,6 +69,7 @@ export const useArtistWorks = (artistId: string) =>
         .from("works")
         .select("id, title, accession_number, classification, medium, date_created, location_building, location_room, is_on_display, data_quality_score")
         .eq("artist_id", artistId)
+        .is("deleted_at", null)
         .order("date_created", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -79,11 +81,11 @@ export const useArtistConditionSummary = (artistId: string) =>
   useQuery({
     queryKey: ["artist-condition-summary", artistId],
     queryFn: async () => {
-      // Get work ids for this artist
       const { data: works } = await supabase
         .from("works")
         .select("id")
-        .eq("artist_id", artistId);
+        .eq("artist_id", artistId)
+        .is("deleted_at", null);
       if (!works || works.length === 0) return null;
 
       const workIds = works.map((w) => w.id);
@@ -153,19 +155,18 @@ export const useCreateArtist = () => {
 export const useDeleteArtist = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      // Unlink works first
-      const { error: unlinkErr } = await supabase
-        .from("works")
-        .update({ artist_id: null, artist_name: null })
-        .eq("artist_id", id);
-      if (unlinkErr) throw unlinkErr;
-      const { error } = await supabase.from("artists").delete().eq("id", id);
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      // Soft delete: set deleted_at and deleted_by
+      const { error } = await supabase
+        .from("artists")
+        .update({ deleted_at: new Date().toISOString(), deleted_by: role })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["artists-list"] });
       qc.invalidateQueries({ queryKey: ["works-list"] });
+      qc.invalidateQueries({ queryKey: ["trash-counts"] });
     },
   });
 };

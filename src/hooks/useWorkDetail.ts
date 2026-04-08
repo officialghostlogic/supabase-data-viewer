@@ -9,6 +9,7 @@ export const useWorkDetail = (id: string) =>
         .from("works")
         .select("*")
         .eq("id", id)
+        .is("deleted_at", null)
         .single();
       if (wErr) throw wErr;
 
@@ -18,6 +19,7 @@ export const useWorkDetail = (id: string) =>
           .from("artists")
           .select("display_name, given_name, family_name, nationality, birth_year, death_year, is_isu_affiliated, bio")
           .eq("id", work.artist_id)
+          .is("deleted_at", null)
           .single();
         artist = data;
       }
@@ -29,6 +31,7 @@ export const useWorkDetail = (id: string) =>
           .from("locations")
           .select("full_location, location_type, climate_controlled, security_level, building_id")
           .eq("id", work.location_id)
+          .is("deleted_at", null)
           .single();
         location = loc;
         if (loc?.building_id) {
@@ -36,6 +39,7 @@ export const useWorkDetail = (id: string) =>
             .from("buildings")
             .select("name, short_name")
             .eq("id", loc.building_id)
+            .is("deleted_at", null)
             .single();
           building = bld;
         }
@@ -98,12 +102,16 @@ export const useUpdateWork = () => {
 export const useDeleteWork = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("works").delete().eq("id", id);
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      const { error } = await supabase
+        .from("works")
+        .update({ deleted_at: new Date().toISOString(), deleted_by: role })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["works-list"] });
+      qc.invalidateQueries({ queryKey: ["trash-counts"] });
     },
   });
 };
@@ -115,6 +123,7 @@ export const useAdjacentWorks = (currentId: string) =>
       const { data: all, error } = await supabase
         .from("works")
         .select("id, title, accession_number")
+        .is("deleted_at", null)
         .order("accession_number", { ascending: true, nullsFirst: false });
       if (error) throw error;
       const idx = all?.findIndex((w) => w.id === currentId) ?? -1;
@@ -133,6 +142,7 @@ export const useAllArtists = () =>
       const { data, error } = await supabase
         .from("artists")
         .select("id, display_name")
+        .is("deleted_at", null)
         .order("display_name");
       if (error) throw error;
       return data ?? [];

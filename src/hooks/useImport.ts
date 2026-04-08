@@ -42,13 +42,13 @@ export function useImportMatching() {
       setMatching(true);
       try {
         const { data: existingWorks } = await supabase
-          .from("works").select("id, accession_number, barcode");
+          .from("works").select("id, accession_number, barcode").is("deleted_at", null);
         const { data: existingArtists } = await supabase
-          .from("artists").select("id, display_name");
+          .from("artists").select("id, display_name").is("deleted_at", null);
         const { data: existingLocations } = await supabase
-          .from("locations").select("id, full_location, building_id");
+          .from("locations").select("id, full_location, building_id").is("deleted_at", null);
         const { data: existingBuildings } = await supabase
-          .from("buildings").select("id, name");
+          .from("buildings").select("id, name").is("deleted_at", null);
 
         const worksByAcc = new Map<string, string>();
         const worksByBarcode = new Map<string, string>();
@@ -278,6 +278,7 @@ export function useImportExecution() {
         const { data: existing } = await supabase.from("artists")
           .select("id, display_name")
           .eq("display_name", displayName)
+          .is("deleted_at", null)
           .maybeSingle();
 
         if (existing) {
@@ -299,7 +300,7 @@ export function useImportExecution() {
           } catch (e: any) {
             // Race condition fallback
             const { data } = await supabase.from("artists")
-              .select("id").eq("display_name", displayName).maybeSingle();
+              .select("id").eq("display_name", displayName).is("deleted_at", null).maybeSingle();
             if (data) artistMap.set(key, data.id);
           }
         }

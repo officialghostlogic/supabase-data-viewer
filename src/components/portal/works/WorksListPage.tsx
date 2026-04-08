@@ -61,7 +61,7 @@ export const WorksListPage = () => {
   const handleSelectAllPages = useCallback(async () => {
     // Fetch ALL work ids matching current filters
     const { supabase } = await import("@/integrations/supabase/client");
-    let query = supabase.from("works").select("id");
+    let query = supabase.from("works").select("id").is("deleted_at", null);
     if (filters.classification) query = query.eq("classification", filters.classification);
     if (filters.location_building) query = query.eq("location_building", filters.location_building);
     if (filters.import_status) query = query.eq("import_status", filters.import_status);

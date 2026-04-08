@@ -6,7 +6,8 @@ type TableName = "works" | "artists" | "locations" | "buildings";
 const fetchCount = async (table: TableName) => {
   const { count, error } = await supabase
     .from(table)
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .is("deleted_at", null);
   if (error) throw error;
   return count ?? 0;
 };

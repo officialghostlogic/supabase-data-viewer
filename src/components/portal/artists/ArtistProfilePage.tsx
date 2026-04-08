@@ -90,8 +90,8 @@ export const ArtistProfilePage = () => {
   };
 
   const handleDelete = () => {
-    deleteArtist.mutate(id!, {
-      onSuccess: () => { toast.success("Artist deleted"); navigate(`${base}/artists`); },
+    deleteArtist.mutate({ id: id!, role: portal.role }, {
+      onSuccess: () => { toast.success("Moved to trash"); navigate(`${base}/artists`); },
       onError: (err) => toast.error(`Delete failed: ${err.message}`),
     });
   };
@@ -190,21 +190,19 @@ export const ArtistProfilePage = () => {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="w-full gap-1.5">
-                <Trash2 className="h-3.5 w-3.5" /> Delete Artist
+                <Trash2 className="h-3.5 w-3.5" /> Move to Trash
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete {artist.display_name}?</AlertDialogTitle>
+                <AlertDialogTitle>Move "{artist.display_name}" to trash?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {workCount > 0
-                    ? `This artist has ${workCount} works in the collection. Deleting will unlink them (works remain but lose artist link). Continue?`
-                    : "This cannot be undone."}
+                  This artist will be moved to the trash and hidden from all views. It can be restored within 90 days before being permanently removed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Move to Trash</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
