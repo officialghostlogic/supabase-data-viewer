@@ -20,7 +20,7 @@ interface Props {
   onPushingChange?: (pushing: boolean) => void;
 }
 
-export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem, onReset }: Props) {
+export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem, onReset, onPushingChange }: Props) {
   const navigate = useNavigate();
   const { role } = usePortal();
   const { progress, done, postImportData, execute } = useImportExecution();
@@ -44,7 +44,9 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
 
   const handlePush = async () => {
     setPushing(true);
+    onPushingChange?.(true);
     await execute(matchResults, rowImageMap, fileName, sourceSystem, setToReview);
+    onPushingChange?.(false);
   };
 
   // Post-import screen
