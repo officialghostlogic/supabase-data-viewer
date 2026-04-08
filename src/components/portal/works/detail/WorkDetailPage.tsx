@@ -114,9 +114,9 @@ export const WorkDetailPage = () => {
   };
 
   const handleDelete = () => {
-    deleteWork.mutate(id!, {
+    deleteWork.mutate({ id: id!, role: portal.role }, {
       onSuccess: () => {
-        toast.success("Work deleted");
+        toast.success("Moved to trash");
         navigate(`${base}/works`);
       },
       onError: (err) => toast.error(`Delete failed: ${err.message}`),
@@ -192,20 +192,20 @@ export const WorkDetailPage = () => {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="gap-1.5">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                      <Trash2 className="h-3.5 w-3.5" /> Move to Trash
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete "{work.title}"?</AlertDialogTitle>
+                      <AlertDialogTitle>Move "{work.title}" to trash?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This cannot be undone. The work and all associated records will be permanently removed.
+                        This work will be moved to the trash and hidden from all views. It can be restored within 90 days before being permanently removed.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete
+                        Move to Trash
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

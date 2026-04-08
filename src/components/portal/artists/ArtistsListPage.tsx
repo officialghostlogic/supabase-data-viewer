@@ -99,8 +99,8 @@ export const ArtistsListPage = () => {
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    deleteArtist.mutate(deleteTarget.id, {
-      onSuccess: () => { toast.success("Artist deleted"); setDeleteTarget(null); },
+    deleteArtist.mutate({ id: deleteTarget.id, role: portal.role }, {
+      onSuccess: () => { toast.success("Moved to trash"); setDeleteTarget(null); },
       onError: (err) => toast.error(`Delete failed: ${err.message}`),
     });
   };
@@ -286,17 +286,15 @@ export const ArtistsListPage = () => {
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteTarget?.display_name}?</AlertDialogTitle>
+            <AlertDialogTitle>Move "{deleteTarget?.display_name}" to trash?</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget && deleteTarget.work_count > 0
-                ? `This artist has ${deleteTarget.work_count} works in the collection. Deleting will unlink them (works remain but lose artist link). Continue?`
-                : "This cannot be undone."}
+              This artist will be moved to the trash and hidden from all views. It can be restored within 90 days before being permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              Move to Trash
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
