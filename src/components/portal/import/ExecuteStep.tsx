@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,11 +45,18 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
     return { newWorks, updates, newArtists, newBuildings, newLocations, images, flagged, newBuildingNames, newLocationNames };
   }, [included, rowImageMap]);
 
+  const isPushingRef = useRef(false);
+
   const handlePush = async () => {
+    if (isPushingRef.current) return;
+    isPushingRef.current = true;
     setPushing(true);
     onPushingChange?.(true);
-    await execute(matchResults, rowImageMap, fileName, sourceSystem, setToReview);
-    onPushingChange?.(false);
+    try {
+      await execute(matchResults, rowImageMap, fileName, sourceSystem, setToReview);
+    } finally {
+      onPushingChange?.(false);
+    }
   };
 
   // Post-import screen
@@ -233,7 +240,7 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
         </Card>
       )}
 
-      <Button onClick={handlePush} className="w-full" size="lg" disabled={included.length === 0 || !!imagesLost}>
+      <Button onClick={handlePush} className="w-full" size="lg" disabled={pushing || included.length === 0 || !!imagesLost}>
         <Upload className="h-4 w-4 mr-2" />
         Push to Database ({included.length} works){imagesLost ? " — re-upload file first" : ""}
       </Button>

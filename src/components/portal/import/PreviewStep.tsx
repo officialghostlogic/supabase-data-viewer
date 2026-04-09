@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +27,15 @@ export function PreviewStep({ processedRows, rowImageMap, onNext, onBack }: Prop
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
+  // A ref persists across renders without causing re-renders — perfect for a
+  // one-time guard. Without this, new object references for processedRows /
+  // rowImageMap can re-trigger the effect and re-run the Supabase fetch.
+  const hasMatchedRef = useRef(false);
   useEffect(() => {
+    if (hasMatchedRef.current) return;
+    hasMatchedRef.current = true;
     runMatching(processedRows, rowImageMap);
-  }, [processedRows, rowImageMap, runMatching]);
+  }, []);
 
   const stats = useMemo(() => {
     const newCount = results.filter((r) => r.status === "new").length;

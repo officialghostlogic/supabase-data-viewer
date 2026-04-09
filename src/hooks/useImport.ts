@@ -407,7 +407,9 @@ export function useImportExecution() {
             workData.rights_status = m.row.rights_status || null;
             workData.source_files = [sourceFile];
 
-            const { data, error } = await supabase.from("works").insert(workData).select("id").single();
+            const { data, error } = await supabase.from("works")
+              .upsert(workData, { onConflict: "accession_number", ignoreDuplicates: true })
+              .select("id").single();
             if (error) throw new Error(`Work insert: ${error.message}`);
             workIdMap.set(m.row.rowIndex, data.id);
             prog.created++;
