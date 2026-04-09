@@ -454,7 +454,7 @@ export function useImportExecution() {
             work_id: workId,
             file_url: urlData.publicUrl,
             filename: `primary.${img.ext}`,
-            asset_type: "image",
+            asset_type: "Primary Image",
             is_primary: true,
           });
           if (assetErr) throw new Error(`Asset: ${assetErr.message}`);
