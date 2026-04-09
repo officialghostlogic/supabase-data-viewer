@@ -449,15 +449,29 @@ export function useImportExecution() {
 
           const { data: urlData } = supabase.storage.from("artwork-images").getPublicUrl(filePath);
 
-          // 6. Save digital asset
-          const { error: assetErr } = await supabase.from("digital_assets").insert({
-            work_id: workId,
-            file_url: urlData.publicUrl,
-            filename: `primary.${img.ext}`,
-            asset_type: "Primary Image",
-            is_primary: true,
-          });
-          if (assetErr) throw new Error(`Asset: ${assetErr.message}`);
+          // 6. Save digital asset (upsert — update if primary already exists)
+          const { data: existingAsset } = await supabase
+            .from("digital_assets")
+            .select("id")
+            .eq("work_id", workId)
+            .eq("is_primary", true)
+            .maybeSingle();
+
+          if (existingAsset) {
+            const { error: assetErr } = await supabase.from("digital_assets")
+              .update({ file_url: urlData.publicUrl, filename: `primary.${img.ext}` })
+              .eq("id", existingAsset.id);
+            if (assetErr) throw new Error(`Asset update: ${assetErr.message}`);
+          } else {
+            const { error: assetErr } = await supabase.from("digital_assets").insert({
+              work_id: workId,
+              file_url: urlData.publicUrl,
+              filename: `primary.${img.ext}`,
+              asset_type: "Primary Image",
+              is_primary: true,
+            });
+            if (assetErr) throw new Error(`Asset: ${assetErr.message}`);
+          }
           prog.imagesUploaded++;
         } catch (err: any) {
           prog.errors++;

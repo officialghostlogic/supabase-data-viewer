@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -21,23 +22,24 @@ interface MetadataSectionsProps {
   draft: Record<string, unknown>;
   setDraft: (key: string, value: unknown) => void;
   allArtists: { id: string; display_name: string }[];
+  basePath?: string;
 }
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="grid grid-cols-[140px_1fr] gap-2 items-start py-1.5">
-    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-1">{label}</span>
+    <span className="text-xs font-medium text-foreground/70 uppercase tracking-wider pt-1">{label}</span>
     <div>{children}</div>
   </div>
 );
 
 const ReadValue = ({ value, mono }: { value: string | number | null | undefined; mono?: boolean }) => (
-  <span className={`text-sm text-card-foreground ${mono ? "font-mono text-xs" : ""}`}>
+  <span className={`text-base text-foreground ${mono ? "font-mono text-xs" : ""}`}>
     {value ?? <span className="text-muted-foreground/50">—</span>}
   </span>
 );
 
 const SectionHeader = ({ title }: { title: string }) => (
-  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2 mb-3 mt-6 first:mt-0">
+  <h3 className="text-sm font-bold text-foreground uppercase tracking-widest border-b border-border pb-2 mb-3 mt-6 first:mt-0">
     {title}
   </h3>
 );
@@ -50,7 +52,7 @@ const classifications = [
 const rightsOptions = ["Unknown", "Public Domain", "Copyright", "Fair Use", "Creative Commons"];
 
 export const MetadataSections = ({
-  work, artist, location, building, editing, draft, setDraft, allArtists,
+  work, artist, location, building, editing, draft, setDraft, allArtists, basePath,
 }: MetadataSectionsProps) => {
   const v = (key: string) => (editing ? (draft[key] as string) ?? "" : undefined);
 
@@ -83,7 +85,7 @@ export const MetadataSections = ({
         {editing ? (
           <Input value={v("title") ?? ""} onChange={(e) => setDraft("title", e.target.value)} className="h-8 text-sm" />
         ) : (
-          <span className="text-sm font-semibold text-card-foreground">{work.title}</span>
+          <span className="text-base font-semibold text-foreground">{work.title}</span>
         )}
       </Field>
       <Field label="Artist">
@@ -99,7 +101,13 @@ export const MetadataSections = ({
           </Select>
         ) : (
           <div>
-            <span className="text-sm text-card-foreground">{artist?.display_name ?? work.artist_name ?? "—"}</span>
+            {work.artist_id && basePath ? (
+              <Link to={`${basePath}/artists/${work.artist_id}`} className="text-base text-primary hover:underline font-medium">
+                {artist?.display_name ?? work.artist_name ?? "—"}
+              </Link>
+            ) : (
+              <span className="text-base text-foreground">{artist?.display_name ?? work.artist_name ?? "—"}</span>
+            )}
             {artist?.nationality && (
               <span className="text-xs text-muted-foreground ml-2">({artist.nationality})</span>
             )}

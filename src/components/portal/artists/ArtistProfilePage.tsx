@@ -33,7 +33,7 @@ const classColors: Record<string, string> = {
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="grid grid-cols-[120px_1fr] gap-2 items-start py-1.5">
-    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-1">{label}</span>
+    <span className="text-xs font-medium text-foreground/70 uppercase tracking-wider pt-1">{label}</span>
     <div>{children}</div>
   </div>
 );
@@ -108,8 +108,12 @@ export const ArtistProfilePage = () => {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      {/* Breadcrumb with back button */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button variant="ghost" size="sm" className="gap-1 px-2 h-7" onClick={() => navigate(`${base}/artists`)}>
+          <span className="text-sm">←</span> Back
+        </Button>
+        <span className="text-muted-foreground/40">|</span>
         <Link to={`${base}/artists`} className="hover:text-foreground transition-colors">Artists</Link>
         <span>›</span>
         <span className="text-foreground truncate max-w-[300px]">{artist.display_name}</span>
@@ -122,7 +126,7 @@ export const ArtistProfilePage = () => {
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-foreground font-display">{artist.display_name}</h1>
+                <h1 className="text-3xl font-bold text-foreground font-display">{artist.display_name}</h1>
                 {artist.is_isu_affiliated && (
                   <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider bg-secondary/20 text-secondary border border-secondary/30 mt-2">
                     ISU Affiliated
