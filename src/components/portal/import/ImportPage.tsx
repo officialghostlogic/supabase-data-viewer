@@ -10,7 +10,7 @@ import { revokeImageUrls } from "@/utils/extractEmbeddedImages";
 import extractEmbeddedImages from "@/utils/extractEmbeddedImages";
 import type { MatchResult } from "@/hooks/useImport";
 import { useImportPersistence, loadPersistedState, clearPersistedState, type PersistedImportState } from "@/hooks/useImportPersistence";
-import { Check, RotateCcw, ArrowRight, AlertTriangle } from "lucide-react";
+import { Check, RotateCcw, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STEPS = ["Upload File", "Map Columns", "Preview & Clean", "Review & Push"];
@@ -255,27 +255,6 @@ export function ImportPage() {
         )}
       </div>
 
-      {/* Image re-upload warning */}
-      {imagesLost && step === 3 && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-400">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>Images were not saved — please re-upload the original file to restore image data.</span>
-          </div>
-          <div>
-            <input
-              ref={reuploadRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleReuploadFile}
-              className="hidden"
-            />
-            <Button size="sm" variant="outline" onClick={() => reuploadRef.current?.click()}>
-              Re-upload file
-            </Button>
-          </div>
-        </div>
-      )}
 
       <div className="flex items-center gap-1">
         {STEPS.map((label, i) => (
@@ -324,14 +303,26 @@ export function ImportPage() {
         />
       )}
       {step === 3 && (
-        <ExecuteStep
-          matchResults={matchResults}
-          rowImageMap={rowImageMap}
-          fileName={fileName}
-          sourceSystem={sourceSystem}
-          onReset={resetWizard}
-          onPushingChange={setPushing}
-        />
+        <>
+          <input
+            ref={reuploadRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleReuploadFile}
+            className="hidden"
+          />
+          <ExecuteStep
+            matchResults={matchResults}
+            rowImageMap={rowImageMap}
+            fileName={fileName}
+            sourceSystem={sourceSystem}
+            onReset={resetWizard}
+            onPushingChange={setPushing}
+            imagesLost={imagesLost}
+            expectedImageCount={imageCount}
+            onReuploadFile={() => reuploadRef.current?.click()}
+          />
+        </>
       )}
     </div>
   );

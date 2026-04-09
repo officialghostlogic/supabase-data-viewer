@@ -18,9 +18,12 @@ interface Props {
   sourceSystem: string;
   onReset: () => void;
   onPushingChange?: (pushing: boolean) => void;
+  imagesLost?: boolean;
+  expectedImageCount?: number;
+  onReuploadFile?: () => void;
 }
 
-export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem, onReset, onPushingChange }: Props) {
+export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem, onReset, onPushingChange, imagesLost, expectedImageCount, onReuploadFile }: Props) {
   const navigate = useNavigate();
   const { role } = usePortal();
   const { progress, done, postImportData, execute } = useImportExecution();
@@ -210,9 +213,29 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
         </CardContent>
       </Card>
 
-      <Button onClick={handlePush} className="w-full" size="lg" disabled={included.length === 0}>
+      {imagesLost && (
+        <Card className="border-yellow-500/50 bg-yellow-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>
+                  <strong>{expectedImageCount || 0} image{(expectedImageCount || 0) !== 1 ? "s" : ""}</strong> were not saved — re-upload the original file to restore them before pushing.
+                </span>
+              </div>
+              {onReuploadFile && (
+                <Button size="sm" variant="outline" onClick={onReuploadFile}>
+                  Re-upload file
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Button onClick={handlePush} className="w-full" size="lg" disabled={included.length === 0 || !!imagesLost}>
         <Upload className="h-4 w-4 mr-2" />
-        Push to Database ({included.length} works)
+        Push to Database ({included.length} works){imagesLost ? " — re-upload file first" : ""}
       </Button>
     </div>
   );
