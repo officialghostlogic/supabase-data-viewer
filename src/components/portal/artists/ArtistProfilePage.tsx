@@ -108,8 +108,12 @@ export const ArtistProfilePage = () => {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      {/* Breadcrumb with back button */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button variant="ghost" size="sm" className="gap-1 px-2 h-7" onClick={() => navigate(`${base}/artists`)}>
+          <span className="text-sm">←</span> Back
+        </Button>
+        <span className="text-muted-foreground/40">|</span>
         <Link to={`${base}/artists`} className="hover:text-foreground transition-colors">Artists</Link>
         <span>›</span>
         <span className="text-foreground truncate max-w-[300px]">{artist.display_name}</span>

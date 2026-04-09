@@ -151,8 +151,12 @@ export const WorkDetailPage = () => {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      {/* Breadcrumb with back button */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button variant="ghost" size="sm" className="gap-1 px-2 h-7" onClick={() => navigate(`${base}/works`)}>
+          <ChevronLeft className="h-4 w-4" /> Back
+        </Button>
+        <span className="text-muted-foreground/40">|</span>
         <Link to={`${base}/works`} className="hover:text-foreground transition-colors">
           Works
         </Link>
@@ -163,7 +167,7 @@ export const WorkDetailPage = () => {
       {/* Top bar */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-2xl font-bold text-foreground font-display truncate">
+          <h1 className="text-3xl font-bold text-foreground font-display truncate">
             {work.title}
           </h1>
           {work.import_status && (
@@ -240,6 +244,7 @@ export const WorkDetailPage = () => {
             draft={draft}
             setDraft={setDraft}
             allArtists={allArtists ?? []}
+            basePath={base}
           />
         </div>
       </div>
