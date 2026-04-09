@@ -10,7 +10,7 @@ import { revokeImageUrls } from "@/utils/extractEmbeddedImages";
 import extractEmbeddedImages from "@/utils/extractEmbeddedImages";
 import type { MatchResult } from "@/hooks/useImport";
 import { useImportPersistence, loadPersistedState, clearPersistedState, type PersistedImportState } from "@/hooks/useImportPersistence";
-import { Check, RotateCcw, ArrowRight, AlertTriangle } from "lucide-react";
+import { Check, RotateCcw, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STEPS = ["Upload File", "Map Columns", "Preview & Clean", "Review & Push"];
