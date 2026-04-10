@@ -92,7 +92,9 @@ export function ImportPage() {
   }, [rowImageMap]);
 
   const restoreState = useCallback((saved: PersistedImportState) => {
-    setStep(saved.currentStep);
+    // Cap restored step to 2 (Preview) so matching always re-runs with fresh DB data
+    const restoredStep = Math.min(saved.currentStep, 2);
+    setStep(restoredStep);
     setRawRows(saved.rawRows);
     setFileName(saved.fileName);
     setSourceSystem(saved.sourceSystem);
@@ -100,7 +102,7 @@ export function ImportPage() {
     setMapping(saved.mapping);
     setHasHeader(saved.hasHeader);
     setProcessedRows(saved.processedRows);
-    setMatchResults(saved.matchResults);
+    setMatchResults([]);
     setHasImages(saved.hasImages);
     setImageCount(saved.imageCount);
     setRowImageMap({});

@@ -233,9 +233,9 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
         </Card>
       )}
 
-      <Button onClick={handlePush} className="w-full" size="lg" disabled={included.length === 0 || !!imagesLost}>
+      <Button onClick={handlePush} className="w-full" size="lg" disabled={included.length === 0}>
         <Upload className="h-4 w-4 mr-2" />
-        Push to Database ({included.length} works){imagesLost ? " — re-upload file first" : ""}
+        Push to Database ({included.length} works){imagesLost ? " — images will be skipped" : ""}
       </Button>
     </div>
   );
