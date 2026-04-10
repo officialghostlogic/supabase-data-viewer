@@ -30,7 +30,7 @@ export function FileUploadStep({ onComplete }: Props) {
       let images: Record<number, EmbeddedImage> = {};
       let imageCount = 0;
 
-      if (file.name.endsWith(".xlsx")) {
+      if (file.name.toLowerCase().endsWith(".xlsx")) {
         const result = await extractEmbeddedImages(file);
         images = result.rowImageMap;
         imageCount = result.imageCount;

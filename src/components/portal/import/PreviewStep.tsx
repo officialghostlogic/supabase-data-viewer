@@ -13,6 +13,9 @@ interface Props {
   rowImageMap: Record<number, EmbeddedImage>;
   onNext: (results: MatchResult[]) => void;
   onBack: () => void;
+  imagesLost?: boolean;
+  expectedImageCount?: number;
+  onReuploadFile?: () => void;
 }
 
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -22,7 +25,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: "default" | "second
   skip: { label: "Skip", variant: "destructive" },
 };
 
-export function PreviewStep({ processedRows, rowImageMap, onNext, onBack }: Props) {
+export function PreviewStep({ processedRows, rowImageMap, onNext, onBack, imagesLost, expectedImageCount, onReuploadFile }: Props) {
   const { matching, results, runMatching, toggleRow, toggleAll } = useImportMatching();
   const [page, setPage] = useState(0);
   const pageSize = 20;
@@ -76,6 +79,24 @@ export function PreviewStep({ processedRows, rowImageMap, onNext, onBack }: Prop
           <div className="text-xs text-muted-foreground">Skipped</div>
         </div>
       </div>
+
+      {imagesLost && expectedImageCount ? (
+        <Card>
+          <CardContent className="pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Images need to be restored for this session.</p>
+              <p className="text-sm text-muted-foreground">
+                Re-upload the original .xlsx file to restore {expectedImageCount} image{expectedImageCount === 1 ? "" : "s"} for preview and upload.
+              </p>
+            </div>
+            {onReuploadFile && (
+              <Button type="button" variant="outline" onClick={onReuploadFile}>
+                Re-upload original file
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {stats.newBuildings.size > 0 && (
         <div className="p-3 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 rounded-md text-sm">

@@ -187,7 +187,7 @@ export function ImportPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      if (file.name.endsWith(".xlsx")) {
+      if (file.name.toLowerCase().endsWith(".xlsx")) {
         const result = await extractEmbeddedImages(file);
         setRowImageMap(result.rowImageMap);
         setHasImages(result.hasImages);
@@ -197,6 +197,8 @@ export function ImportPage() {
       }
     } catch {
       // Ignore errors — images just stay unavailable
+    } finally {
+      e.target.value = "";
     }
   };
 
@@ -257,7 +259,6 @@ export function ImportPage() {
         )}
       </div>
 
-
       <div className="flex items-center gap-1">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-1">
@@ -288,6 +289,14 @@ export function ImportPage() {
         ))}
       </div>
 
+      <input
+        ref={reuploadRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        onChange={handleReuploadFile}
+        className="hidden"
+      />
+
       {step === 0 && <FileUploadStep onComplete={handleFileUploaded} />}
       {step === 1 && (
         <ColumnMappingStep
@@ -302,29 +311,23 @@ export function ImportPage() {
           rowImageMap={rowImageMap}
           onNext={handlePreviewNext}
           onBack={() => setStep(isEmbark ? 0 : 1)}
+          imagesLost={imagesLost}
+          expectedImageCount={imageCount}
+          onReuploadFile={() => reuploadRef.current?.click()}
         />
       )}
       {step === 3 && (
-        <>
-          <input
-            ref={reuploadRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleReuploadFile}
-            className="hidden"
-          />
-          <ExecuteStep
-            matchResults={matchResults}
-            rowImageMap={rowImageMap}
-            fileName={fileName}
-            sourceSystem={sourceSystem}
-            onReset={resetWizard}
-            onPushingChange={setPushing}
-            imagesLost={imagesLost}
-            expectedImageCount={imageCount}
-            onReuploadFile={() => reuploadRef.current?.click()}
-          />
-        </>
+        <ExecuteStep
+          matchResults={matchResults}
+          rowImageMap={rowImageMap}
+          fileName={fileName}
+          sourceSystem={sourceSystem}
+          onReset={resetWizard}
+          onPushingChange={setPushing}
+          imagesLost={imagesLost}
+          expectedImageCount={imageCount}
+          onReuploadFile={() => reuploadRef.current?.click()}
+        />
       )}
     </div>
   );
