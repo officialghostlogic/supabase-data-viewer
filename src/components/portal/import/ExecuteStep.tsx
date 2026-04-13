@@ -216,16 +216,16 @@ export function ExecuteStep({ matchResults, rowImageMap, fileName, sourceSystem,
       {imagesLost && (
         <Card className="border-yellow-500/50 bg-yellow-500/5">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-400">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>
-                  <strong>{expectedImageCount || 0} image{(expectedImageCount || 0) !== 1 ? "s" : ""}</strong> were not saved — re-upload the original file to restore them before pushing.
+                  <strong>{expectedImageCount || 0} image{(expectedImageCount || 0) !== 1 ? "s" : ""}</strong> need to be restored — re-upload the original .xlsx file, or push without images.
                 </span>
               </div>
               {onReuploadFile && (
-                <Button size="sm" variant="outline" onClick={onReuploadFile}>
-                  Re-upload file
+                <Button size="sm" variant="outline" onClick={onReuploadFile} className="shrink-0">
+                  Re-upload .xlsx
                 </Button>
               )}
             </div>

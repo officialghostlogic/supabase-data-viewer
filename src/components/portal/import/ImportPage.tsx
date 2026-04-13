@@ -189,14 +189,21 @@ export function ImportPage() {
     try {
       if (file.name.toLowerCase().endsWith(".xlsx")) {
         const result = await extractEmbeddedImages(file);
-        setRowImageMap(result.rowImageMap);
-        setHasImages(result.hasImages);
-        setImageCount(result.imageCount);
-        setImagesLost(false);
-        setReuploadMode(false);
+        if (result.imageCount > 0) {
+          setRowImageMap(result.rowImageMap);
+          setHasImages(result.hasImages);
+          setImageCount(result.imageCount);
+          setImagesLost(false);
+          setReuploadMode(false);
+        } else {
+          console.warn("[Import] Re-upload: no images found in file");
+        }
+      } else {
+        // For non-xlsx files, also re-parse the full workbook to restore rows + images
+        console.warn("[Import] Re-upload only supports .xlsx files for image extraction");
       }
-    } catch {
-      // Ignore errors — images just stay unavailable
+    } catch (err) {
+      console.error("[Import] Re-upload failed:", err);
     } finally {
       e.target.value = "";
     }
