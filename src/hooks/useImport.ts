@@ -104,9 +104,20 @@ export function useImportMatching() {
             if (loc) {
               locationStatus = "existing";
               existingLocationId = loc.id;
-              existingBuildingId = loc.building_id || undefined;
-              buildingStatus = "existing";
-            } else {
+
+              if (loc.building_id) {
+                existingBuildingId = loc.building_id;
+                buildingStatus = "existing";
+              } else if (row.location_building) {
+                const bId = buildingsByName.get(row.location_building.toLowerCase());
+                if (bId) {
+                  buildingStatus = "existing";
+                  existingBuildingId = bId;
+                } else {
+                  buildingStatus = "new";
+                }
+              }
+            } else if (row.location_building) {
               const bId = buildingsByName.get(row.location_building.toLowerCase());
               if (bId) { buildingStatus = "existing"; existingBuildingId = bId; }
             }
@@ -210,10 +221,67 @@ export function useImportExecution() {
           prog.buildingsCreated++;
           newBuildingNames.push(m.row.location_building);
         } catch (e: any) {
-          // May already exist, try to fetch
-          const { data } = await supabase.from("buildings")
-            .select("id").eq("name", m.row.location_building).single();
-          if (data) buildingCache.set(key, data.id);
+          let resolved = false;
+
+          const { data: existingActive } = await supabase.from("buildings")
+            .select("id")
+            .eq("name", m.row.location_building)
+            .is("deleted_at", null)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingActive) {
+            buildingCache.set(key, existingActive.id);
+            resolved = true;
+          } else {
+            const { data: deletedBuilding, error: deletedLookupError } = await supabase.from("buildings")
+              .select("id")
+              .eq("name", m.row.location_building)
+              .not("deleted_at", "is", null)
+              .limit(1)
+              .maybeSingle();
+
+            if (deletedLookupError) {
+              prog.errors++;
+              prog.errorDetails.push({ row: m.row.rowIndex, message: `Building lookup: ${deletedLookupError.message}` });
+            } else if (deletedBuilding) {
+              const { error: restoreError } = await supabase.from("buildings")
+                .update({ deleted_at: null, deleted_by: null, is_active: true })
+                .eq("id", deletedBuilding.id);
+
+              if (restoreError) {
+                prog.errors++;
+                prog.errorDetails.push({ row: m.row.rowIndex, message: `Building restore: ${restoreError.message}` });
+              } else {
+                buildingCache.set(key, deletedBuilding.id);
+                prog.buildingsCreated++;
+                newBuildingNames.push(m.row.location_building);
+                resolved = true;
+              }
+            }
+          }
+
+          if (!resolved) {
+            prog.errors++;
+            prog.errorDetails.push({ row: m.row.rowIndex, message: `Building create: ${e.message}` });
+          }
+        }
+      }
+
+      // Link existing locations to any newly created/restored building records.
+      for (const m of included) {
+        if (!m.existingLocationId || m.buildingStatus !== "new" || !m.row.location_building) continue;
+
+        const buildingId = buildingCache.get(m.row.location_building.toLowerCase());
+        if (!buildingId) continue;
+
+        const { error } = await supabase.from("locations")
+          .update({ building_id: buildingId, building: m.row.location_building })
+          .eq("id", m.existingLocationId);
+
+        if (error) {
+          prog.errors++;
+          prog.errorDetails.push({ row: m.row.rowIndex, message: `Room link: ${error.message}` });
         }
       }
 
@@ -247,9 +315,58 @@ export function useImportExecution() {
           locationCache.set(key, data.id);
           prog.locationsCreated++;
         } catch (e: any) {
-          const { data } = await supabase.from("locations")
-            .select("id").eq("full_location", m.row.location_full!).single();
-          if (data) locationCache.set(key, data.id);
+          let resolved = false;
+
+          const { data: existingActive } = await supabase.from("locations")
+            .select("id")
+            .eq("full_location", m.row.location_full!)
+            .is("deleted_at", null)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingActive) {
+            locationCache.set(key, existingActive.id);
+            resolved = true;
+          } else {
+            const buildingId = buildingCache.get(m.row.location_building.toLowerCase()) || null;
+            const { data: deletedLocation, error: deletedLookupError } = await supabase.from("locations")
+              .select("id")
+              .eq("full_location", m.row.location_full!)
+              .not("deleted_at", "is", null)
+              .limit(1)
+              .maybeSingle();
+
+            if (deletedLookupError) {
+              prog.errors++;
+              prog.errorDetails.push({ row: m.row.rowIndex, message: `Room lookup: ${deletedLookupError.message}` });
+            } else if (deletedLocation) {
+              const { error: restoreError } = await supabase.from("locations")
+                .update({
+                  deleted_at: null,
+                  deleted_by: null,
+                  building_id: buildingId,
+                  building: m.row.location_building || "Unknown",
+                  floor: m.row.location_floor || null,
+                  room_name: m.row.location_room || null,
+                  full_location: m.row.location_full,
+                })
+                .eq("id", deletedLocation.id);
+
+              if (restoreError) {
+                prog.errors++;
+                prog.errorDetails.push({ row: m.row.rowIndex, message: `Room restore: ${restoreError.message}` });
+              } else {
+                locationCache.set(key, deletedLocation.id);
+                prog.locationsCreated++;
+                resolved = true;
+              }
+            }
+          }
+
+          if (!resolved) {
+            prog.errors++;
+            prog.errorDetails.push({ row: m.row.rowIndex, message: `Room create: ${e.message}` });
+          }
         }
       }
 
@@ -298,10 +415,56 @@ export function useImportExecution() {
             artistMap.set(key, newArtist.id);
             prog.artistsCreated++;
           } catch (e: any) {
-            // Race condition fallback
-            const { data } = await supabase.from("artists")
-              .select("id").eq("display_name", displayName).is("deleted_at", null).maybeSingle();
-            if (data) artistMap.set(key, data.id);
+            let resolved = false;
+
+            const { data: activeArtist } = await supabase.from("artists")
+              .select("id")
+              .eq("display_name", displayName)
+              .is("deleted_at", null)
+              .limit(1)
+              .maybeSingle();
+
+            if (activeArtist) {
+              artistMap.set(key, activeArtist.id);
+              resolved = true;
+            } else {
+              const { data: deletedArtist, error: deletedLookupError } = await supabase.from("artists")
+                .select("id")
+                .eq("display_name", displayName)
+                .not("deleted_at", "is", null)
+                .limit(1)
+                .maybeSingle();
+
+              if (deletedLookupError) {
+                prog.errors++;
+                prog.errorDetails.push({ row: sampleRow.rowIndex, message: `Artist lookup: ${deletedLookupError.message}` });
+              } else if (deletedArtist) {
+                const { error: restoreError } = await supabase.from("artists")
+                  .update({
+                    deleted_at: null,
+                    deleted_by: null,
+                    family_name: sampleRow.artist_family || null,
+                    given_name: sampleRow.artist_given || null,
+                    name_raw: sampleRow.artist_raw,
+                    is_isu_affiliated: false,
+                  })
+                  .eq("id", deletedArtist.id);
+
+                if (restoreError) {
+                  prog.errors++;
+                  prog.errorDetails.push({ row: sampleRow.rowIndex, message: `Artist restore: ${restoreError.message}` });
+                } else {
+                  artistMap.set(key, deletedArtist.id);
+                  prog.artistsCreated++;
+                  resolved = true;
+                }
+              }
+            }
+
+            if (!resolved) {
+              prog.errors++;
+              prog.errorDetails.push({ row: sampleRow.rowIndex, message: `Artist create: ${e.message}` });
+            }
           }
         }
       }
