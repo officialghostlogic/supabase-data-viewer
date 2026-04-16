@@ -431,6 +431,7 @@ export type Database = {
           import_flags: string[] | null
           import_status: string | null
           is_on_display: boolean | null
+          is_published: boolean
           location_building: string | null
           location_floor: string | null
           location_full: string | null
@@ -474,6 +475,7 @@ export type Database = {
           import_flags?: string[] | null
           import_status?: string | null
           is_on_display?: boolean | null
+          is_published?: boolean
           location_building?: string | null
           location_floor?: string | null
           location_full?: string | null
@@ -517,6 +519,7 @@ export type Database = {
           import_flags?: string[] | null
           import_status?: string | null
           is_on_display?: boolean | null
+          is_published?: boolean
           location_building?: string | null
           location_floor?: string | null
           location_full?: string | null
